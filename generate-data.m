@@ -34,7 +34,7 @@ RunOnce[dname_, i_] :=
         ];
         Export[FileNameJoin[{dname, "/sample-"<>IntegerString[i, 10, 4]<>".csv"}], table];
         ise = Total[table[[All,4]]]/1024;
-        PrintISE[i, ise];
+        SaveISE[i, ise];
     ];
 
 Main[] := Module[

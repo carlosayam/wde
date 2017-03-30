@@ -1,18 +1,5 @@
 (* utils for main .m scripts *)
 
-MkDirP[{}] := "";
-MkDirP[{x_, xs_}] := f[xs_] := StringJoin[ Table[
-    (
-     Print[x];
-     x <> "/"
-     ), {x, xs}
-    ]
-   ];
-    (
-        If[!DirectoryQ[x],CreateDirectory[x]];
-        x <> "/" <> MkDirP[xs];
-    );
-
 WaveFName[wave_] := StringReplace[ToString[wave], {"[" -> "_", "]" -> ""}];
 
 MkResultDir[wave_, j0_, j1_, sampleSize_] :=
@@ -29,7 +16,7 @@ MkResultDir[wave_, j0_, j1_, sampleSize_] :=
         CreateDirectory[dname, CreateIntermediateDirectories -> True]
     ];
 
-PrintISE[i_,ise_] :=
+SaveISE[i_,ise_] :=
     Module[
         {
             file
