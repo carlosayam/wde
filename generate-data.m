@@ -27,7 +27,7 @@ RunOnce[dname_, i_, j0_, j1_, n_] :=
             Table[
                 With[
                     {v = estimator[{x0,x1}]^2},
-                    {x0, x1 , v, (v - truePdf[{x0,x1}])^2 }
+                    {N[x0], N[x1], v, (v - truePdf[{x0,x1}])^2 }
                 ],
                 {x0,0,1,1/32},
                 {x1,0,1,1/32}
@@ -55,7 +55,7 @@ DoLevel[j0_,j1_,n_] := Module[
 (* main *)
 LaunchKernels[4];
 Do[
-    ParallelDo[
+    Do[
         DoLevel[j0, j1, n],
         {j1, j0-1, j0-1}
     ],
