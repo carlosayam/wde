@@ -19,4 +19,4 @@ RESP_DIR="$PBS_O_WORKDIR/resp/run_06"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
-WolframScript -script $PBS_O_WORKDIR/generate-data.m 'DaubechiesWavelet[4]' '-1' '0' 100
+WolframScript -script $PBS_O_WORKDIR/generate-data.m 'DaubechiesWavelet[4]' '-2' '5'

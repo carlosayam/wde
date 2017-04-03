@@ -5,12 +5,12 @@ SetOptions[$Output,FormatType->OutputForm];
 << mydist_bumps.m;
 << utils.m;
 
-If[Length[$ScriptCommandLine] < 3, Print["Usage: generate.m <wave> <j0> <J1> <sample_size>"]; Quit[]];
-{WAVE, J0, J1, SAMPLESIZE} = ToExpression /@ $ScriptCommandLine[[-4 ;; -1]];
+If[Length[$ScriptCommandLine] < 4, Print["Usage: generate.m <wave> <j0> <J1>"]; Quit[]];
+{WAVE, J0, J1} = ToExpression /@ $ScriptCommandLine[[-3 ;; -1]];
 If[Head[WaveletPhi[WAVE]] == WaveletPhi, Quit[]];
 
 
-RunOnce[dname_, i_] :=
+RunOnce[dname_, i_, j0_, j1_, n_] :=
     Module[
         {
             data,
@@ -20,8 +20,8 @@ RunOnce[dname_, i_] :=
             rval,
             ise
         },
-        data = DistData[MyDist, SAMPLESIZE];
-        estimator = WaveletEstimator2D[WAVE, data, 1, J0, J1];
+        data = DistData[MyDist, n];
+        estimator = WaveletEstimator2D[WAVE, data, 1, j0, j1];
         truePdf = DistPDF[MyDist];
         table = Flatten[
             Table[
@@ -35,20 +35,30 @@ RunOnce[dname_, i_] :=
             1
         ];
         rval = IntegerString[IntegerPart[RandomVariate[UniformDistribution[{0,1000000}]]],10,7];
-        Export[FileNameJoin[{dname, "/sample-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], table];
-        ise = Total[table[[All,4]]]/1024;
-        SaveISE[i, ise, rval];
+        Export[FileNameJoin[{dname, "/data-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], table];
+        Export[FileNameJoin[{dname, "/table-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], table];
+        ise = N[Total[table[[All,4]]]/1024];
+        SaveISE[j0, j1, n, i, ise, rval];
     ];
 
-Main[] := Module[
+DoLevel[j0_,j1_,n_] := Module[
     {
         dname
     },
-    dname = MkResultDir[WAVE, J0, J1, SAMPLESIZE];
+    dname = MkResultDir[WAVE, j0, j1, n];
     ParallelDo[
-        RunOnce[dname, i],
-        {i,1,500}
+        RunOnce[dname, i, j0, j1, n],
+        {i,1,100}
     ]
 ];
 
-Main[];
+(* main *)
+LaunchKernels[4];
+Do[
+    ParallelDo[
+        DoLevel[j0, j1, n],
+        {j1, j0-1, j0-1}
+    ],
+    {j0, J0, J1}
+    {n, {50, 75, 100, 150, 200, 225, 300, 400}}
+]
