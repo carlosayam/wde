@@ -26,5 +26,5 @@ DistData[dist_,n_] :=
                 ) &
             ];
         dataC := makeC[dist];
-        Table[dataC[],n]
+        Table[dataC[],{ni,1,n}]
     ];

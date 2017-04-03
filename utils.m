@@ -9,20 +9,26 @@ MkResultDir[wave_, j0_, j1_, sampleSize_] :=
                 {
                     "data",
                     WaveFName[wave],
-                    "opts-j0_" <> IntegerString[j0, 10, 3] <> "j1_" <> IntegerString[j1, 10, 3] <> "n_" <> IntegerString[sampleSize, 10, 5]
+                    "opts-j0_" <> IntegerString[j0, 10, 3] <> ",j1_" <> IntegerString[j1, 10, 3] <> ",n_" <> IntegerString[sampleSize, 10, 5]
                 }
             ]
         },
-        CreateDirectory[dname, CreateIntermediateDirectories -> True]
+        Quiet[CreateDirectory[dname, CreateIntermediateDirectories -> True],{CreateDirectory::filex}]
     ];
 
 SaveISE[i_,ise_] :=
     Module[
         {
-            file
-        }
-        file = OpenAppend["data/ise.csv"];
-        Export[file, {WaveFName[WAVE],J0,J1,SAMPLESIZE,i,ise}, "CSV"];
-        WriteString[file, "\n"];
-        Close[file];
+            string
+        },
+        string = WaveFName[WAVE] <> ","
+          <> ToString[J0] <> ","
+          <> ToString[J1] <> ","
+          <> ToString[SAMPLESIZE] <> ","
+          <> ToString[i] <> ","
+          <> ToString[ise] <> "\n";
+
+        s = OpenAppend["data/ise.csv"];
+        WriteString[s, string];
+        Close[s];
     ];

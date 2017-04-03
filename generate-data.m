@@ -7,6 +7,7 @@ SetOptions[$Output,FormatType->OutputForm];
 
 If[Length[$ScriptCommandLine] < 3, Print["Usage: generate.m <wave> <j0> <J1> <sample_size>"]; Quit[]];
 {WAVE, J0, J1, SAMPLESIZE} = ToExpression /@ $ScriptCommandLine[[-4 ;; -1]];
+If[Head[WaveletPhi[WAVE]] == WaveletPhi, Quit[]];
 
 
 RunOnce[dname_, i_] :=
@@ -17,14 +18,14 @@ RunOnce[dname_, i_] :=
             truePdf,
             table,
             ise
-        }
+        },
         data = DistData[MyDist, SAMPLESIZE];
         estimator = WaveletEstimator2D[WAVE, data, 1, J0, J1];
         truePdf = DistPDF[MyDist];
         table = Flatten[
             Table[
                 With[
-                    {v = gHat[{x0,x1}]^2},
+                    {v = estimator[{x0,x1}]^2},
                     {x0, x1 , v, (v - truePdf[{x0,x1}])^2 }
                 ],
                 {x0,0,1,1/32},
@@ -44,7 +45,7 @@ Main[] := Module[
     dname = MkResultDir[WAVE, J0, J1, SAMPLESIZE];
     Do[
         RunOnce[dname, i],
-        {i,1,500}
+        {i,1,50}
     ]
 ];
 
