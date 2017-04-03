@@ -16,16 +16,16 @@ MkResultDir[wave_, j0_, j1_, sampleSize_] :=
         Quiet[CreateDirectory[dname, CreateIntermediateDirectories -> True],{CreateDirectory::filex}]
     ];
 
-SaveISE[i_,ise_] :=
+SaveISE[i_,ise_, rval_] :=
     Module[
         {
             string
         },
-        string = WaveFName[WAVE] <> ","
+        string = "\"" <> WaveFName[WAVE] <> "\","
           <> ToString[J0] <> ","
           <> ToString[J1] <> ","
           <> ToString[SAMPLESIZE] <> ","
-          <> ToString[i] <> ","
+          <> "\"" <> ToString[i] <> "-" <> rval <> "\","
           <> ToString[ise] <> "\n";
 
         s = OpenAppend["data/ise.csv"];

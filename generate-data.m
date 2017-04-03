@@ -17,6 +17,7 @@ RunOnce[dname_, i_] :=
             estimator,
             truePdf,
             table,
+            rval,
             ise
         },
         data = DistData[MyDist, SAMPLESIZE];
@@ -33,9 +34,10 @@ RunOnce[dname_, i_] :=
             ],
             1
         ];
-        Export[FileNameJoin[{dname, "/sample-"<>IntegerString[i, 10, 4]<>".csv"}], table];
+        rval = IntegerString[IntegerPart[RandomVariate[UniformDistribution[{0,1000000}]]],10,7];
+        Export[FileNameJoin[{dname, "/sample-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], table];
         ise = Total[table[[All,4]]]/1024;
-        SaveISE[i, ise];
+        SaveISE[i, ise, rval];
     ];
 
 Main[] := Module[
@@ -43,9 +45,9 @@ Main[] := Module[
         dname
     },
     dname = MkResultDir[WAVE, J0, J1, SAMPLESIZE];
-    Do[
+    ParallelDo[
         RunOnce[dname, i],
-        {i,1,50}
+        {i,1,500}
     ]
 ];
 

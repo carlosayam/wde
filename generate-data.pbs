@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #PBS -N OUTPUT
-#PBS -l nodes=1:ppn=1
+#PBS -l nodes=1:ppn=4
 #PBS -l vmem=4gb
-#PBS -l walltime=0:30:00
+#PBS -l walltime=10:00:00
 #PBS -M z3403159@student.unsw.edu.au
 #PBS -m ae
 ##PBS -k n
@@ -15,8 +15,8 @@ module purge
 module add mathematica/10.0.1
 
 # - RESP_DIR=`date +'%Y-%m-%d_%H.%M'`
-RESP_DIR="$PBS_O_WORKDIR/resp/run_04"
+RESP_DIR="$PBS_O_WORKDIR/resp/run_06"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
-WolframScript -script $PBS_O_WORKDIR/generate-data.m 'DaubechiesWavelet[6]' '-1' '0' 100
+WolframScript -script $PBS_O_WORKDIR/generate-data.m 'DaubechiesWavelet[4]' '-1' '0' 100
