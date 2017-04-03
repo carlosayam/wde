@@ -1,5 +1,7 @@
 (* utils for main .m scripts *)
 
+MyIntegerString[i_, ds_] := If[i < 0, "-", "0"] <> IntegerString[i, 10, ds];
+
 WaveFName[wave_] := StringReplace[ToString[wave], {"[" -> "_", "]" -> ""}];
 
 MkResultDir[wave_, j0_, j1_, sampleSize_] :=
@@ -9,8 +11,8 @@ MkResultDir[wave_, j0_, j1_, sampleSize_] :=
                 {
                     "data",
                     WaveFName[wave],
-                    "opts-j0_" <> IntegerString[j0, 10, 3]
-                        <> ",j1_" <> If[j1 >= j0, IntegerString[j1, 10, 3], "___"]
+                    "opts-j0_" <> MyIntegerString[j0, 3]
+                        <> ",j1_" <> If[j1 >= j0, MyIntegerString[j1, 3], "____"]
                         <> ",n_"
                         <> IntegerString[sampleSize, 10, 5]
                 }
