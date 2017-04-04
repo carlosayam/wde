@@ -60,7 +60,7 @@ WDECoefficientF2D[wave_, data_List, k_] :=
         nearF = NormToNearest[data, 1];
         numData = Length[data];
         factor = (Gamma[k]/Gamma[k + 1/2]) (1/Sqrt[numData]) Sqrt[C0];
-        Print["Def WDECoeffs"];
+        (* Print["Def WDECoeffs"]; *)
         f[j_Integer, qs_, zs_] :=
             f[j, qs, zs] =
             With[
@@ -148,7 +148,7 @@ WaveletEstimator2D[wave_, data_, k_, j0_, j1_] :=
         psum[j_, qs_] := 
             psum[j, qs] = 
             (
-                Print[{"psum", j, qs, ToString[TimeObject[]]}]; 
+                (* Print[{"psum", j, qs, ToString[TimeObject[]]}]; *)
                 WaveletPartialSum[wave, coeffsF, minXs, maxXs, j, qs]
             );
         Function[

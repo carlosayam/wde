@@ -15,7 +15,7 @@ module purge
 module add mathematica/10.0.1
 
 # - RESP_DIR=`date +'%Y-%m-%d_%H.%M'`
-RESP_DIR="$PBS_O_WORKDIR/resp/run_06"
+RESP_DIR="$PBS_O_WORKDIR/resp/run_07"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
