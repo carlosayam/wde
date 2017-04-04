@@ -17,6 +17,7 @@ RunOnce[dname_, i_, j0_, j1_, n_] :=
             estimator,
             truePdf,
             table,
+            sumF,
             rval,
             ise
         },
@@ -27,17 +28,20 @@ RunOnce[dname_, i_, j0_, j1_, n_] :=
             Table[
                 With[
                     {v = estimator[{x0,x1}]^2},
-                    {N[x0], N[x1], v, (v - truePdf[{x0,x1}])^2 }
+                    {N[x0], N[x1], v}
                 ],
                 {x0,0,1,1/32},
                 {x1,0,1,1/32}
             ],
             1
         ];
+        (* estimator needs to be normalised by hand *)
+        sumF = Total[table[[All, 3]]]/1024.0;
+        table = (({#1, #2, #3/sumF, (#3/sumF - truePdf[{#1,#2}])^2} &) @@ # &) /@ table;
         rval = IntegerString[IntegerPart[RandomVariate[UniformDistribution[{0,1000000}]]],10,7];
         Export[FileNameJoin[{dname, "/data-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], data];
         Export[FileNameJoin[{dname, "/table-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], table];
-        ise = N[Total[table[[All,4]]]/1024];
+        ise = N[Total[table[[All,4]]]/1024.0];
         SaveISE[j0, j1, n, i, ise, rval];
     ];
 
