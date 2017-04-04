@@ -35,7 +35,7 @@ RunOnce[dname_, i_, j0_, j1_, n_] :=
             1
         ];
         rval = IntegerString[IntegerPart[RandomVariate[UniformDistribution[{0,1000000}]]],10,7];
-        Export[FileNameJoin[{dname, "/data-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], table];
+        Export[FileNameJoin[{dname, "/data-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], data];
         Export[FileNameJoin[{dname, "/table-"<>IntegerString[i, 10, 4]<>"-"<>rval<>".csv"}], table];
         ise = N[Total[table[[All,4]]]/1024];
         SaveISE[j0, j1, n, i, ise, rval];
