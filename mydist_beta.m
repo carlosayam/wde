@@ -1,7 +1,9 @@
-(* dist difficult *)
-    
+(* dist easy *)
+
+ClearAll[MyDist];
+
 MyDist :=
     ProductDistribution[
-        BetaDistribution[2,4],
-        BetaDistribution[2,4]
+        TransformedDistribution[(x - 0.125) / 0.5, x \[Distributed] BetaDistribution[2,4]],
+        TransformedDistribution[(x - 0.125) / 0.5, x \[Distributed] BetaDistribution[2,4]]
     ];

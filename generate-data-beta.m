@@ -55,10 +55,8 @@ DoLevel[j0_,j1_,n_] := Module[
 (* main *)
 LaunchKernels[4];
 Do[
-    Do[
-        DoLevel[j0, j1, n],
-        {j1, j0-1, Min[j0+2,J1]}
-    ],
+    DoLevel[j0, j1, n],
+    {n, {50, 75, 100, 150, 200, 225, 300, 400}},
     {j0, J0, J1},
-    {n, {50, 75, 100, 150, 200, 225, 300, 400}}
+    {j1, j0-1, Min[j0+2,J1]}
 ]
