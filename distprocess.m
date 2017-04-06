@@ -2,12 +2,14 @@
 
 (* dist processing *)
 
+ClearAll[DistPDF, DistData];
+
 DistPDF[dist_] :=
     Module[
         {
             total
         },
-        total = Total[Flatten[Table[PDF[dist,{x0,x1}],{x0,0,1,1/32},{x1,0,1,1/32}]]];
+        total = Total[Flatten[Table[PDF[dist,{x0,x1}],{x0,0,1,1/32},{x1,0,1,1/32}]]]/1024.0;
         Function[{p}, PDF[dist,p]/total]
     ];
 

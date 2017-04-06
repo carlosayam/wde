@@ -1,5 +1,7 @@
 (* dist difficult *)
-    
+
+ClearAll[MyDist];
+
 MyDist :=
     With[
         {
