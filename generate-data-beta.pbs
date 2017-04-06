@@ -15,8 +15,8 @@ module purge
 module add mathematica/10.0.1
 
 # - RESP_DIR=`date +'%Y-%m-%d_%H.%M'`
-RESP_DIR="$PBS_O_WORKDIR/resp/run_10"
+RESP_DIR="$PBS_O_WORKDIR/resp/run_09"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
-WolframScript -script $PBS_O_WORKDIR/generate-data.m 'DaubechiesWavelet[4]' '-2' '5'
+WolframScript -script $PBS_O_WORKDIR/generate-data-beta.m 'DaubechiesWavelet[4]' '-2' '5'
