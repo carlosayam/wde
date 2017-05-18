@@ -1,5 +1,5 @@
 class Beta2D(object):
-    def __init__(self, *args, code='beta'):
+    def __init__(self, code='beta', *args):
         self.args = args
         self.code = code
 
@@ -49,7 +49,7 @@ def dist_from_code(code):
     elif code == 'mult':
         return TruncatedMultiNormal2D(
             [1/9, 8/9],
-            [np.array([0.2, 0.3]), np.array([0.7, 0.7]],
+            [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
             [np.array([[sigma/6, 0], [0, sigma/6]]), np.array([[0.1, sigma/8], [sigma/8, 0.1]])],
             code=code
             )
@@ -89,4 +89,5 @@ def write_dist_pdf(dist):
     fname = 'data2d/%s/pdf.csv' % dist.code
     np.savetxt(fname, Z, fmt='%f', delimiter=',')
 
-def calc_mise(true)
+def calc_mise(true):
+    pass
