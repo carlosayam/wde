@@ -46,6 +46,21 @@ def wave_tensor(qx, phi, psi, jpow, zs, xs):
         cols.append(wavef(jpow * xs_proj - zs[i]))
     return np.multiply(*tuple(cols)) * (jpow ** (len(qx)/2.0))
 
+def suppf_tensor(qx, phi_sup, psi_sup, jpow, zs, xs):
+    cols = []
+    if type(xs) == tuple:
+        proj = lambda xs,i: xs[i]
+    else:
+        proj = lambda xs,i: xs[:,i]
+    for i,q2 in enumerate(qx):
+        supp = phi_sup if q2 == 0 else psi_sup
+        xs_proj = proj(xs,i)
+        xjz = jpow * xs_proj - zs[i]
+        cols.append(np.greater_equal(xjz, supp[0]))
+        cols.append(np.less_equal(xjz, supp[1]))
+    return np.all(*tuple(cols)).sum()
+
+
 # factor for num samples l, dimension dim and nearest index k
 def calc_factor(l, dim, k):
     v_unit = (np.pi ** (dim/2.0)) / gamma(dim/2.0 + 1)
@@ -100,8 +115,6 @@ def zs_range(wavef, minx, maxx, j):
     return zs_min, zs_max
     
 def calc_coeff(wave_tensor_qx, jpow, zs, xs, xs_balls):
-    accum = 0.0
-    dim = xs.shape[1]
     vals = wave_tensor_qx(jpow, zs, xs)
     all_prods = vals * xs_balls[:,0]
     #if jpow == 2 and str(wave_tensor_qx.qx) == '(0, 1)':
@@ -136,6 +149,7 @@ class WaveletDensityEstimator(object):
             f = partial(wave_tensor, qx, phi, psi)
             f.qx = qx
             f.support = support_tensor(qx, self.phi_support, self.psi_support)
+            f.suppf = partial(suppf_tensor, qx, self.phi_support, self.psi_support)
             self.wave_funs[tuple(qx)] = f
 
     def calc_coefficients(self, xs):
@@ -155,10 +169,11 @@ class WaveletDensityEstimator(object):
                 zs_min, zs_max = zs_range(wavef, self.minx, self.maxx, j)
                 self.coeffs[j][qx] = {}
                 for zs in itt.product(*all_zs_tensor(zs_min, zs_max)):
+                    ## print j,qx,zs, '#=', wavef.suppf(jpow2, zs, xs) !!
                     v = self.coeffs[j][qx][zs] = calc_coeff(wavef, jpow2, zs, xs, xs_balls)
                     #print j,qx,zs,' coeff^2', v*v, norm_const
                     norm_const += v * v
-        print 'norm_const', norm_const
+        #print 'norm_const', norm_const
         self.norm_const = norm_const
 
     def calc_pdf(self):
