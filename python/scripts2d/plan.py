@@ -33,21 +33,22 @@ PBS="""
 #PBS -j oe
 #PBS -t 1-%d
 
-cd $PBS_O_WORKDIR
- 
 module purge
 module add python/2.7.12
 
-RESP_DIR="$PBS_O_WORKDIR"
+cd $PBS_O_INITDIR
+mkdir -p RESP
+
+RESP_DIR="$PBS_O_INITDIR/RESP"
+SW_DIR="$PBS_O_INITDIR/WDE/wde/python"
 
 mkdir -p $RESP_DIR/data2d/samples
 mkdir -p $RESP_DIR/data2d/resp
 
 cd $RESP_DIR
 
-. wdeenv/bin/activate
-./scripts2d/run_for.py 1000 $PBS_ARRAYID
-
+. $SW_DIR/wdeenv/bin/activate
+$SW_DIR/scripts2d/run_for.py 1000 $PBS_ARRAYID
 """[1:-1]
 
 def write_pbs(num):
