@@ -55,7 +55,6 @@ def write_pbs(num):
     fname = 'data2d/run.pbs'
     with open(fname, 'wa') as f:
         f.write(PBS % (num // 1000))
-    sys.exec('chmod a+x %s' % fname) #??
 
 def main():
     plans = []
