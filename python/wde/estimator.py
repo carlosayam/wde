@@ -188,4 +188,10 @@ class WaveletDensityEstimator(object):
                         vals = coeff * wavef(jpow2, zs, coords)
                         xs_sum += vals
             return (xs_sum * xs_sum)/self.norm_const
-        return pdffun
+        X = np.linspace(0.0,1.0, num=75)
+        Y = np.linspace(0.0,1.0, num=75)
+        pred_Z = pdffun(tuple(np.meshgrid(X, Y)))
+        factor = (len(X) * len(Y) / pred_Z.sum())
+        def pdf2(coords):
+            return pdffun(coords) * factor
+        return pdf2
