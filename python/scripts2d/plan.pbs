@@ -11,9 +11,6 @@
 module purge
 module add python/2.7.12
 
-cd $PBS_O_INITDIR
-mkdir -p RESP
-
 RESP_DIR="$PBS_O_INITDIR/RESP"
 SW_DIR="$PBS_O_INITDIR/WDE/wde/python"
 
