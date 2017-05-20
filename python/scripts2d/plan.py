@@ -33,15 +33,18 @@ PBS="""
 #PBS -N ARRAY
 #PBS -l nodes=1:ppn=1
 #PBS -l vmem=1gb
-#PBS -l walltime=2:00:00
+#PBS -l walltime=2:30:00
 #PBS -j oe
-#PBS -t 1-\%d
+#PBS -M z3403159@student.unsw.edu.au
+#PBS -m ae
+
+#PBS -t 1-%%d
 
 module purge
 module add python/2.7.12
 
-RESP_DIR="$PBS_O_INITDIR/RESP"
-SW_DIR="$PBS_O_INITDIR/WDE/wde/python"
+RESP_DIR="$PBS_O_HOME/RESP"
+SW_DIR="$PBS_O_HOME/WDE/wde/python"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
@@ -61,15 +64,14 @@ def gen_samples():
     beta = u.dist_from_code('beta')
     multi = u.dist_from_code('mult')
     for dist in [beta, multi]:
-        for ix in range(3): # 9
-            n = 100 + ix * 250 # 1000, 2500
-            for i in range(2): # 500
+        for ix in range(9):
+            n = 1000 + ix * 1250
+            for i in range(500):
                 data = dist.rvs(n)
                 fname = u.write_sample(dist, n, i, data)
                 yield fname, n, dist
 
 def main():
-    wave_code = sys.argv[3]
     plans = []
     for fname, n, dist in gen_samples():
         for wave_code in ['db1', 'db3', 'db5', 'sym4', 'coif1']:
@@ -78,7 +80,7 @@ def main():
                     k = 1
                     while k < int(math.sqrt(n)/4):
                         plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
-                        k = 2 * k
+                        k = int(1.5 * k) + 1
     u.write_plans(plans)
     u.write_dist_pdf(u.dist_from_code('beta'))
     u.write_dist_pdf(u.dist_from_code('mult'))

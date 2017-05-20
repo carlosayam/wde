@@ -7,12 +7,13 @@
 #PBS -j oe
 #PBS -M z3403159@student.unsw.edu.au
 #PBS -m ae
+#PBS -l epilogue=/home/z3403159/WDE/wde/python/scripts2d/launch.sh
 
 module purge
 module add python/2.7.12
 
-RESP_DIR="$PBS_O_INITDIR/RESP"
-SW_DIR="$PBS_O_INITDIR/WDE/wde/python"
+RESP_DIR="$PBS_O_HOME/RESP"
+SW_DIR="$PBS_O_HOME/WDE/wde/python"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
