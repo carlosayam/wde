@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import division
 
+import gc
 import math
 import os
 import random
@@ -32,7 +33,7 @@ PBS="""
 
 #PBS -N ARRAY
 #PBS -l nodes=1:ppn=1
-#PBS -l vmem=1gb
+#PBS -l vmem=2gb
 #PBS -l walltime=2:30:00
 #PBS -j oe
 #PBS -M z3403159@student.unsw.edu.au
@@ -69,9 +70,11 @@ def gen_samples():
             for i in range(500):
                 data = dist.rvs(n)
                 fname = u.write_sample(dist, n, i, data)
+                data = None
                 yield fname, n, dist
 
 def main():
+    gc.enable()
     plans = []
     for fname, n, dist in gen_samples():
         for wave_code in ['db1', 'db3', 'db5', 'sym4', 'coif1']:

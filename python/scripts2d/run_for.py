@@ -2,6 +2,7 @@
 from __future__ import division
 
 import datetime
+import gc
 import os
 import sys
 import pandas
@@ -33,6 +34,7 @@ def exec_plan(row):
     u.write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time, rand)
 
 def main():
+    gc.enable()
     bag_size = int(sys.argv[1])
     bag_number = int(sys.argv[2])
     plans = u.read_plans(bag_size, bag_number)
