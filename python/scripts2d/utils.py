@@ -81,7 +81,7 @@ def read_sample(fname):
     return np.genfromtxt(fname, delimiter=',')
 
 def sample_name(fname):
-    return os.splitext(os.path.basename(fname))[0]
+    return os.path.splitext(os.path.basename(fname))[0]
 
 PLAN_FNAME = 'data2d/plan.csv'
 def write_plans(plans):
@@ -113,7 +113,7 @@ def write_wde(wde, fname, dist_code, wave_code, j0, j1, k):
     XX, YY = mise_mesh()
     Z = wde.pdf((XX, YY))
     sname = sample_name(fname)
-    fname = 'data2d/%s/resp/wde.%s.%5s.%04d.%04d.%04d.csv' % (dist.code, sname, wave_code, j0, j1, k)
+    fname = 'data2d/%s/resp/wde.%s.%5s.j0_%04d.j1_%04d.k_%04d.csv' % (dist_code, sname, '{:_>5}'.format(wave_code), j0, j1, k)
     np.savetxt(fname, Z, fmt='%f',delimiter=',')
 
 DIST_PDFS = {}
@@ -136,9 +136,11 @@ def calc_ise(pred_pdf, pdf_vals):
 def empty_ise():
     open('data2d/ise.csv', 'w').close()
 
-def write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time):
-    new_entry = '"%s", "%s", %d, %d, %d, %d, %e, %f\n' % (fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
+def write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time, rand):
+    new_entry = '"%s", "%s", "%s", %d, %d, %d, %d, %f, %f\n' % (fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
     with open("data2d/ise.csv", "a") as f:
         fcntl.flock(f, fcntl.LOCK_EX)
         f.write(new_entry)
+        with open("data2d/progress.txt","w") as pf:
+            pf.write('%7.4f' % rand)
         fcntl.flock(f, fcntl.LOCK_UN)
