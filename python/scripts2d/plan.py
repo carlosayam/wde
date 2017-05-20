@@ -78,7 +78,7 @@ def main():
             for j0 in range(0, 4):
                 for j1 in range(j0, 8):
                     k = 1
-                    while k < int(math.sqrt(n)/4):
+                    while k * k * 2 < n:
                         plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
                         k = int(1.5 * k) + 1
     u.write_plans(plans)

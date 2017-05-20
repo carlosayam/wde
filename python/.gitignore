@@ -1,0 +1,5 @@
+*.pyc
+scripts2d/PLAN.*
+scripts2d/RUN.*
+wdeenv/
+
