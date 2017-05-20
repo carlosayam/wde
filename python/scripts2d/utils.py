@@ -1,52 +1,63 @@
+from __future__ import division
+
+import sys
+import os
+import fcntl
+import numpy as np
+import scipy.stats as stats
+import pandas
+
+from scipy.interpolate import interp2d
+
 class Beta2D(object):
-    def __init__(self, code='beta', *args):
-        self.args = args
+    def __init__(self, a, b, code='beta'):
+        self.dist = stats.beta(a, b)
         self.code = code
 
     def rvs(self, num):
-        return np.random.beta(*self.args, (num, 2))
+        return self.dist.rvs((num, 2))
 
     def pdf(self, grid):
-        #print X.shape, X
-        #print Y.shape, Y
-        return statsm.beta(*self.args, grid)
+        return self.dist.pdf(grid[0]) * self.dist.pdf(grid[1])
 
 class TruncatedMultiNormal2D(object):
-    def __init__(self, probs, mus, covs, code=code):
+    def __init__(self, probs, mus, covs, code='mult'):
         self.code = code
         self._pdf = None
         self.probs = probs
-        self.mus = mus
-        self.covs = covs
-        self.dists = [stats.multivariate_normal(mean=mu, cov=cov) for mu, cov in zip(self.mus, self.covs)]
+        self.dists = [stats.multivariate_normal(mean=mu, cov=cov) for mu, cov in zip(mus, covs)]
+
+    def _rvs(self):
+        while True:
+            i = np.random.choice(np.arange(0,len(self.probs)), p=self.probs)
+            dist = self.dists[i]
+            yield dist.rvs(1)
 
     def rvs(self, num):
         data = []
         while num > 0:
-            for d in mix.mv_mixture_rvs(self.probs, 100, self.dists, 2):
+            for d in self._rvs():
                 if 0 <= d[0] and d[0] <= 1 and 0 <= d[1] and d[1] <= 1:
                     data.append(d)
                     num -= 1
-                    if num == 0: break
+                    if num == 0:
+                        break
         return np.array(data)
 
     def pdf(self, grid):
-        if self._pdf is None:
-            self._pdf = self.calc_pdf()
-        return self._pdf(grid)
-
-    def calc_pdf(self):
-        mesh = mise_mesh()
-        vals = [dist.pdf(mesh) for dist in self.dists]
-        pdf_vals = np.add(*[val[i] * self.probs[i] for i in range(len(self.probs))])
+        pos = np.empty(grid[0].shape + (2,))
+        pos[:, :, 0], pos[:, :, 1] = grid
+        vals = [dist.pdf(pos) for dist in self.dists]
+        pdf_vals = np.add(*[vals[i] * self.probs[i] for i in range(len(self.probs))])
         total = pdf_vals.sum()
-        pdf_vals = pdf_vals / total
-        return interp2d(pdf_vals, fill=0.0)
+        #pdf_vals = pdf_vals / total
+        return pdf_vals
 
 def dist_from_code(code):
     if code == 'beta':
         return Beta2D(2, 4, code=code)
     elif code == 'mult':
+        sigma = 0.05
         return TruncatedMultiNormal2D(
             [1/9, 8/9],
             [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
@@ -56,26 +67,33 @@ def dist_from_code(code):
     else:
         raise NotImplemented('Unknown distribution code [%s]' % code)
 
+def mkdir(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
 def write_sample(dist, n, i, data):
+    mkdir('data2d/%s/samples' % dist.code)
     fname = 'data2d/%s/samples/data-%05d-%03d.csv' % (dist.code, n, i)
     np.savetxt(fname, data, fmt='%f', delimiter=',')
     return fname
 
 def read_sample(fname):
-    data = np.readtxt(fname)
-    code = fname.split('/')[1]
-    return data, dist_from_code(code)
+    return np.genfromtxt(fname, delimiter=',')
+
+def sample_name(fname):
+    return os.splitext(os.path.basename(fname))[0]
 
 PLAN_FNAME = 'data2d/plan.csv'
 def write_plans(plans):
+    mkdir('data2d')
     df = pandas.DataFrame(plans)
-    df = df.sort_values(['j0','j1','k','wave_name','fname'])
+    df = df.sort_values(['rand'])
     df.to_csv(PLAN_FNAME, index=False)
 
 def read_plans(bag_size, bag_number):
-    df = pandas.from_csv(PLAN_FNAME)
+    df = pandas.read_csv(PLAN_FNAME)
     start = bag_size * (bag_number - 1)
-    rows = df[start:start + bag_size]
+    rows = df.iloc[start:start + bag_size]
     return rows
 
 def mise_mesh():
@@ -84,10 +102,43 @@ def mise_mesh():
     return np.meshgrid(X, Y) # X,Y
 
 def write_dist_pdf(dist):
-    X, Y = mise_mesh()
-    Z = dist.pdf((X, Y))
-    fname = 'data2d/%s/pdf.csv' % dist.code
-    np.savetxt(fname, Z, fmt='%f', delimiter=',')
+    mkdir('data2d/%s' % dist.code)
+    XX, YY = mise_mesh()
+    Z = dist.pdf((XX, YY))
+    fname = 'data2d/%s/pdf.csv' % (dist.code,)
+    np.savetxt(fname, Z, fmt='%f',delimiter=',')
 
-def calc_mise(true):
-    pass
+def write_wde(wde, fname, dist_code, wave_code, j0, j1, k):
+    mkdir('data2d/%s/resp' % dist_code)
+    XX, YY = mise_mesh()
+    Z = wde.pdf((XX, YY))
+    sname = sample_name(fname)
+    fname = 'data2d/%s/resp/wde.%s.%5s.%04d.%04d.%04d.csv' % (dist.code, sname, wave_code, j0, j1, k)
+    np.savetxt(fname, Z, fmt='%f',delimiter=',')
+
+DIST_PDFS = {}
+def read_dist_pdf(code):
+    fname = 'data2d/%s/pdf.csv' % (code,)
+    if fname in DIST_PDFS:
+        return DIST_PDFS[fname]
+    Z = np.genfromtxt(fname, delimiter=',')
+    DIST_PDFS[fname] = Z / Z.sum()
+    return DIST_PDFS[fname]
+
+def calc_ise(pred_pdf, pdf_vals):
+    X = np.linspace(0.0,1.0, num=75)
+    Y = np.linspace(0.0,1.0, num=75)
+    pred_Z = pred_pdf(tuple(np.meshgrid(X, Y)))
+    diff = pred_Z - pdf_vals
+    err = (diff * diff).sum()
+    return err / (len(X) * len(Y))
+
+def empty_ise():
+    open('data2d/ise.csv', 'w').close()
+
+def write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time):
+    new_entry = '"%s", "%s", %d, %d, %d, %d, %e, %f\n' % (fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
+    with open("data2d/ise.csv", "a") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.write(new_entry)
+        fcntl.flock(f, fcntl.LOCK_UN)

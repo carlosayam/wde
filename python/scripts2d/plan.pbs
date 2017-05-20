@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#PBS -N PLAN
+#PBS -l nodes=1:ppn=1
+#PBS -l vmem=1gb
+#PBS -l walltime=2:00:00
+#PBS -j oe
+#PBS -M z3403159@student.unsw.edu.au
+#PBS -m ae
+
+module purge
+module add python/2.7.12
+
+cd $PBS_O_INITDIR
+mkdir -p RESP
+
+RESP_DIR="$PBS_O_INITDIR/RESP"
+SW_DIR="$PBS_O_INITDIR/WDE/wde/python"
+
+mkdir -p $RESP_DIR
+cd $RESP_DIR
+
+. $SW_DIR/wdeenv/bin/activate
+$SW_DIR/scripts2d/plan.py
