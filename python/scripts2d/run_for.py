@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import division
 
+import datetime
 import os
 import sys
 import pandas
@@ -19,17 +20,17 @@ import scripts2d.utils as u
 # data2d/results/{sample_file}-mise.csv :  calculated MISE
 
 def exec_plan(row):
-    fname, wave_code, dist_code, j0, j1, k = row['fname'], row['wave_code'], row['dist_code'], row['j0'], row['j1'], row['k']
+    fname, wave_code, dist_code, j0, j1, k, rand = row['fname'], row['wave_code'], row['dist_code'], row['j0'], row['j1'], row['k'], row['rand']
     data = u.read_sample(fname)
     n = len(data)
     pdf_vals = u.read_dist_pdf(dist_code)
     wde = WaveletDensityEstimator(wave_code, k = k, j0 = j0, j1 = j1)
     t0 = datetime.datetime.now()
     wde.fit(data)
-    elapsed_time = (datetime.datetime.now() - tt).total_seconds()
+    elapsed_time = (datetime.datetime.now() - t0).total_seconds()
     ise = u.calc_ise(wde.pdf, pdf_vals)
     u.write_wde(wde, fname, dist_code, wave_code, j0, j1, k)
-    u.write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
+    u.write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time, rand)
 
 def main():
     bag_size = int(sys.argv[1])
