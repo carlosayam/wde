@@ -123,7 +123,7 @@ def read_dist_pdf():
     if fname in DIST_PDFS:
         return DIST_PDFS[fname]
     Z = np.genfromtxt(fname, delimiter=',')
-    DIST_PDFS[fname] = Z / Z.sum()
+    DIST_PDFS[fname] = Z
     return DIST_PDFS[fname]
 
 def calc_ise(pred_pdf, pdf_vals):
