@@ -63,7 +63,7 @@ def gen_samples(dist_code):
     dist = u.dist_from_code(dist_code)
     for ix in range(9):
         n = 1000 + ix * 1250
-        for i in range(5): # 500
+        for i in range(500):
             data = dist.rvs(n)
             fname = u.write_sample(n, i, data)
             yield fname, n, dist
