@@ -71,9 +71,9 @@ def mkdir(path):
     if not os.path.isdir(path):
         os.makedirs(path)
 
-def write_sample(dist, n, i, data):
-    mkdir('data2d/%s/samples' % dist.code)
-    fname = 'data2d/%s/samples/data-%05d-%03d.csv' % (dist.code, n, i)
+def write_sample(n, i, data):
+    mkdir('data2d/samples')
+    fname = 'data2d/samples/data-%05d-%03d.csv' % (n, i)
     np.savetxt(fname, data, fmt='%f', delimiter=',')
     return fname
 
@@ -87,6 +87,7 @@ PLAN_FNAME = 'data2d/plan.csv'
 def write_plans(plans):
     mkdir('data2d')
     df = pandas.DataFrame(plans)
+    print 'sorting & saving, shape=', df.shape
     df = df.sort_values(['rand'])
     df.to_csv(PLAN_FNAME, index=False)
 
@@ -102,23 +103,23 @@ def mise_mesh():
     return np.meshgrid(X, Y) # X,Y
 
 def write_dist_pdf(dist):
-    mkdir('data2d/%s' % dist.code)
+    mkdir('data2d')
     XX, YY = mise_mesh()
     Z = dist.pdf((XX, YY))
-    fname = 'data2d/%s/pdf.csv' % (dist.code,)
+    fname = 'data2d/true-pdf.csv'
     np.savetxt(fname, Z, fmt='%f',delimiter=',')
 
-def write_wde(wde, fname, dist_code, wave_code, j0, j1, k):
-    mkdir('data2d/%s/resp' % dist_code)
+def write_wde(wde, fname, wave_code, j0, j1, k):
+    mkdir('data2d/resp')
     XX, YY = mise_mesh()
     Z = wde.pdf((XX, YY))
     sname = sample_name(fname)
-    fname = 'data2d/%s/resp/wde.%s.%5s.j0_%04d.j1_%04d.k_%04d.csv' % (dist_code, sname, '{:_>5}'.format(wave_code), j0, j1, k)
+    fname = 'data2d/resp/wde.%s.%5s.j0_%04d.j1_%04d.k_%04d.csv' % (sname, '{:_>5}'.format(wave_code), j0, j1, k)
     np.savetxt(fname, Z, fmt='%f',delimiter=',')
 
 DIST_PDFS = {}
-def read_dist_pdf(code):
-    fname = 'data2d/%s/pdf.csv' % (code,)
+def read_dist_pdf():
+    fname = 'data2d/true-pdf.csv'
     if fname in DIST_PDFS:
         return DIST_PDFS[fname]
     Z = np.genfromtxt(fname, delimiter=',')
@@ -134,13 +135,15 @@ def calc_ise(pred_pdf, pdf_vals):
     return err / (len(X) * len(Y))
 
 def empty_ise():
-    open('data2d/ise.csv', 'w').close()
+    headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time'
+    with open("data2d/ise.csv", "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.write(headers)
+        fcntl.flock(f, fcntl.LOCK_UN)
 
-def write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time, rand):
+def write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time):
     new_entry = '"%s", "%s", "%s", %d, %d, %d, %d, %f, %f\n' % (fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
     with open("data2d/ise.csv", "a") as f:
         fcntl.flock(f, fcntl.LOCK_EX)
         f.write(new_entry)
-        with open("data2d/progress.txt","w") as pf:
-            pf.write('%7.4f' % rand)
         fcntl.flock(f, fcntl.LOCK_UN)
