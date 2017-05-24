@@ -2,4 +2,6 @@
 scripts2d/PLAN.*
 scripts2d/RUN.*
 wdeenv/
+data/
+.ipynb_checkpoints/
 
