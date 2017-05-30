@@ -109,14 +109,6 @@ def write_dist_pdf(dist):
     fname = 'data2d/true-pdf.csv'
     np.savetxt(fname, Z, fmt='%f',delimiter=',')
 
-def write_wde(wde, fname, wave_code, j0, j1, k):
-    mkdir('data2d/resp')
-    XX, YY = mise_mesh()
-    Z = wde.pdf((XX, YY))
-    sname = sample_name(fname)
-    fname = 'data2d/resp/wde.%s.%5s.j0_%04d.j1_%04d.k_%04d.csv' % (sname, '{:_>5}'.format(wave_code), j0, j1, k)
-    np.savetxt(fname, Z, fmt='%f',delimiter=',')
-
 DIST_PDFS = {}
 def read_dist_pdf():
     fname = 'data2d/true-pdf.csv'
@@ -134,16 +126,6 @@ def calc_ise(pred_pdf, pdf_vals):
     err = (diff * diff).sum()
     return err / (len(X) * len(Y))
 
-def empty_ise():
-    headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time'
-    with open("data2d/ise.csv", "w") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        f.write(headers)
-        fcntl.flock(f, fcntl.LOCK_UN)
-
-def write_ise(fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time):
+def write_ise(fhandle, fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time):
     new_entry = '"%s", "%s", "%s", %d, %d, %d, %d, %f, %f\n' % (fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
-    with open("data2d/ise.csv", "a") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        f.write(new_entry)
-        fcntl.flock(f, fcntl.LOCK_UN)
+    fhandle.write(new_entry)

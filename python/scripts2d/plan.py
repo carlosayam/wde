@@ -61,8 +61,7 @@ def write_pbs(dist_code, wave_code, num):
 
 def gen_samples(dist_code):
     dist = u.dist_from_code(dist_code)
-    for ix in range(9):
-        n = 1000 + ix * 1250
+    for n in [500, 1000, 2000, 5000]:
         for i in range(500):
             data = dist.rvs(n)
             fname = u.write_sample(n, i, data)
@@ -72,14 +71,13 @@ def main(dist_code, wave_code):
     plans = []
     for fname, n, dist in gen_samples(dist_code):
         for j0 in range(0, 2):
-            for j1 in range(j0, 8):
+            for j1 in range(j0 - 1, j0 + 4):
                 k = 1
-                while k * k * 4 < n:
+                while k * k * 2 < n:
                     plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
-                    k = 2 * k
+                    k = int(1.5 * k) + 1
     u.write_plans(plans)
     u.write_dist_pdf(u.dist_from_code(dist_code))
-    u.empty_ise()
     write_pbs(dist_code, wave_code, len(plans))
     print 'Done %d' % len(plans)
 
