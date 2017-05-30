@@ -29,9 +29,9 @@ class TruncatedMultiNormal2D(object):
 
     def _rvs(self):
         while True:
-            i = np.random.choice(np.arange(0,len(self.probs)), p=self.probs)
-            dist = self.dists[i]
-            yield dist.rvs(1)
+            for xvs in zip(*[dist.rvs(100) for dist in self.dists])
+                i = np.random.choice(np.arange(0,len(self.probs)), p=self.probs)
+                yield xvs[i]
 
     def rvs(self, num):
         data = []
