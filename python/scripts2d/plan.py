@@ -35,8 +35,6 @@ PBS="""
 #PBS -l vmem=2gb
 #PBS -l walltime=5:30:00
 #PBS -j oe
-#PBS -M z3403159@student.unsw.edu.au
-#PBS -m ae
 
 #PBS -t 1-%%d
 

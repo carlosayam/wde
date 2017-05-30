@@ -37,7 +37,7 @@ def main():
     plans = u.read_plans(bag_size, bag_number)
     with open("data2d/ise-%04d.csv" % bag_number, "w") as fhandle:
         if bag_number == 1:
-            headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time'
+            headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time\n'
             fhandle.write(headers)
         for _, row in plans.iterrows():
             exec_plan(fhandle, row)
