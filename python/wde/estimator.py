@@ -117,16 +117,14 @@ def zs_range(wavef, minx, maxx, j):
 def calc_coeff(wave_tensor_qx, jpow, zs, xs, xs_balls):
     vals = wave_tensor_qx(jpow, zs, xs)
     all_prods = vals * xs_balls[:,0]
-    #if jpow == 2 and str(wave_tensor_qx.qx) == '(0, 1)':
-    #    print jpow, wave_tensor_qx.qx, zs, '>>', all_prods.sum()
     return all_prods.sum()
 
 class WaveletDensityEstimator(object):
-    def __init__(self, wave_name, k = 1, j0 = 0, j1 = 0):
+    def __init__(self, wave_name, k=1, j0=1, j1=None):
         self.wave = pywt.Wavelet(wave_name)
         self.k = k
         self.j0 = j0
-        self.j1 = j1
+        self.j1 = j1 if j1 is not None else (j0 - 1)
         self.phi_support, self.psi_support = wave_support_info(self.wave)
 
     def fit(self, xs):
@@ -159,34 +157,40 @@ class WaveletDensityEstimator(object):
 
     def do_calculate(self, xs, xs_balls):
         self.coeffs = {}
-        norm_const = 0.0
+        qxs = list(all_qx(self.dim))
+        norm_const = self.do_calculate_j(self.j0, qxs[0:1], xs, xs_balls)
         for j in range(self.j0, self.j1 + 1):
-            jpow2 = 2 ** j
-            self.coeffs[j] = {}
-            start = 0 if j == self.j0 else 1
-            for ix, qx in itt.islice(all_qx(self.dim), start, None):
-                wavef = self.wave_funs[qx]
-                zs_min, zs_max = zs_range(wavef, self.minx, self.maxx, j)
-                self.coeffs[j][qx] = {}
-                for zs in itt.product(*all_zs_tensor(zs_min, zs_max)):
-                    ## print j,qx,zs, '#=', wavef.suppf(jpow2, zs, xs) !!
-                    v = self.coeffs[j][qx][zs] = calc_coeff(wavef, jpow2, zs, xs, xs_balls)
-                    #print j,qx,zs,' coeff^2', v*v, norm_const
-                    norm_const += v * v
-        #print 'norm_const', norm_const
+            norm_const += self.do_calculate_j(j, qxs[1:], xs, xs_balls)
         self.norm_const = norm_const
 
+    def do_calculate_j(self, j, qxs, xs, xs_balls):
+        jpow2 = 2 ** j
+        if j not in self.coeffs:
+            self.coeffs[j] = {}
+        norm_j = 0.0
+        for ix, qx in qxs:
+            wavef = self.wave_funs[qx]
+            zs_min, zs_max = zs_range(wavef, self.minx, self.maxx, j)
+            self.coeffs[j][qx] = {}
+            for zs in itt.product(*all_zs_tensor(zs_min, zs_max)):
+                v = self.coeffs[j][qx][zs] = calc_coeff(wavef, jpow2, zs, xs, xs_balls)
+                norm_j += v * v
+        return norm_j
+
     def calc_pdf(self):
+        def pdffun_j(coords, xs_sum, j, qxs):
+            jpow2 = 2 ** j
+            for ix, qx in qxs:
+                wavef = self.wave_funs[qx]
+                for zs, coeff in self.coeffs[j][qx].iteritems():
+                    vals = coeff * wavef(jpow2, zs, coords)
+                    xs_sum += vals
         def pdffun(coords):
             xs_sum = np.zeros(coords[0].shape, dtype=np.float64)
+            qxs = list(all_qx(self.dim))
+            pdffun_j(coords, xs_sum, self.j0, qxs[0:1])
             for j in range(self.j0, self.j1 + 1):
-                jpow2 = 2 ** j
-                start = 0 if j == self.j0 else 1
-                for ix, qx in itt.islice(all_qx(self.dim), start, None):
-                    wavef = self.wave_funs[qx]
-                    for zs, coeff in self.coeffs[j][qx].iteritems():
-                        vals = coeff * wavef(jpow2, zs, coords)
-                        xs_sum += vals
+                pdffun_j(coords, xs_sum, j, qxs[1:])
             return (xs_sum * xs_sum)/self.norm_const
         X = np.linspace(0.0,1.0, num=75)
         Y = np.linspace(0.0,1.0, num=75)
