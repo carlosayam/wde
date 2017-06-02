@@ -119,13 +119,49 @@ def calc_coeff(wave_tensor_qx, jpow, zs, xs, xs_balls):
     all_prods = vals * xs_balls[:,0]
     return all_prods.sum()
 
+def soft_threshold(threshold):
+    def f(j, n, coeff):
+        lvl_factor = math.sqrt(j / n)
+        lvl_t = threshold * lvl_factor
+        if coeff < 0:
+            if -coeff < lvl_t:
+                return 0
+            else:
+                return coeff + lvl_t
+        else:
+            if coeff < lvl_t:
+                return 0
+            else:
+                return coeff - lvl_t
+    return f
+
+def hard_threshold(threshold):
+    def f(j, n, coeff):
+        lvl_factor = math.sqrt(j / n)
+        lvl_t = threshold * lvl_factor
+        if coeff < 0:
+            if -coeff < lvl_t:
+                return 0
+            else:
+                return coeff
+        else:
+            if coeff < lvl_t:
+                return 0
+            else:
+                return coeff
+    return f
+
 class WaveletDensityEstimator(object):
-    def __init__(self, wave_name, k=1, j0=1, j1=None):
+    def __init__(self, wave_name, k=1, j0=1, j1=None, thresholding=None):
         self.wave = pywt.Wavelet(wave_name)
         self.k = k
         self.j0 = j0
         self.j1 = j1 if j1 is not None else (j0 - 1)
         self.phi_support, self.psi_support = wave_support_info(self.wave)
+        if thresholding is None:
+            self.thresholding = lambda n, j, c: c
+        else:
+            self.thresholding = thresholding
 
     def fit(self, xs):
         "Fit estimator to data. xs is a numpy array of dimension n x d, n = samples, d = dimensions"
@@ -134,6 +170,7 @@ class WaveletDensityEstimator(object):
         self.calc_wavefuns()
         self.minx = np.amin(xs, axis=0)
         self.maxx = np.amax(xs, axis=0)
+        self.n = xs.shape[0]
         self.calc_coefficients(xs)
         self.pdf = self.calc_pdf()
         return True
@@ -177,20 +214,24 @@ class WaveletDensityEstimator(object):
                 norm_j += v * v
         return norm_j
 
+    def get_betas(self, j):
+        return [coeff for ix, qx in list(all_qx(self.dim))[1:] for coeff in self.coeffs[j][qx].values()]
+
     def calc_pdf(self):
-        def pdffun_j(coords, xs_sum, j, qxs):
+        def pdffun_j(coords, xs_sum, j, qxs, threshold):
             jpow2 = 2 ** j
             for ix, qx in qxs:
                 wavef = self.wave_funs[qx]
                 for zs, coeff in self.coeffs[j][qx].iteritems():
-                    vals = coeff * wavef(jpow2, zs, coords)
+                    coeff_t = self.thresholding(self.n, j, coeff) if threshold else coeff
+                    vals = coeff_t * wavef(jpow2, zs, coords)
                     xs_sum += vals
         def pdffun(coords):
             xs_sum = np.zeros(coords[0].shape, dtype=np.float64)
             qxs = list(all_qx(self.dim))
-            pdffun_j(coords, xs_sum, self.j0, qxs[0:1])
+            pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):
-                pdffun_j(coords, xs_sum, j, qxs[1:])
+                pdffun_j(coords, xs_sum, j, qxs[1:], True)
             return (xs_sum * xs_sum)/self.norm_const
         X = np.linspace(0.0,1.0, num=75)
         Y = np.linspace(0.0,1.0, num=75)
