@@ -8,6 +8,14 @@ from scipy.interpolate import interp1d
 from scipy.special import gamma
 from functools import partial
 
+def np_mult(cols):
+    if len(cols) == 1:
+        return cols[0]
+    if len(cols) == 2:
+        return np.multiply(*cols)
+    else:
+        return np.multiply(cols[0], np_mult(cols[1:]))
+
 # all possible combinations of {0,1}, i.e. {0,1}^dim
 def all_qx(dim):
     for wave_x, qx in enumerate(itt.product(xrange(2), repeat=dim)):
@@ -44,7 +52,7 @@ def wave_tensor(qx, phi, psi, jpow, zs, xs):
         wavef = phi if q2 == 0 else psi
         xs_proj = proj(xs,i)
         cols.append(wavef(jpow * xs_proj - zs[i]))
-    return np.multiply(*tuple(cols)) * (jpow ** (len(qx)/2.0))
+    return np_mult(tuple(cols)) * (jpow ** (len(qx)/2.0))
 
 def suppf_tensor(qx, phi_sup, psi_sup, jpow, zs, xs):
     cols = []
@@ -58,7 +66,7 @@ def suppf_tensor(qx, phi_sup, psi_sup, jpow, zs, xs):
         xjz = jpow * xs_proj - zs[i]
         cols.append(np.greater_equal(xjz, supp[0]))
         cols.append(np.less_equal(xjz, supp[1]))
-    return np.all(*tuple(cols)).sum()
+    return np_mult(tuple(cols))
 
 
 # factor for num samples l, dimension dim and nearest index k
