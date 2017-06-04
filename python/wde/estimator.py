@@ -128,8 +128,8 @@ def calc_coeff(wave_tensor_qx, jpow, zs, xs, xs_balls):
     return all_prods.sum()
 
 def soft_threshold(threshold):
-    def f(j, n, coeff):
-        lvl_factor = math.sqrt(j / n)
+    def f(n, j, coeff):
+        lvl_factor = (j + 1) / math.sqrt(1 / n)
         lvl_t = threshold * lvl_factor
         if coeff < 0:
             if -coeff < lvl_t:
@@ -144,8 +144,8 @@ def soft_threshold(threshold):
     return f
 
 def hard_threshold(threshold):
-    def f(j, n, coeff):
-        lvl_factor = math.sqrt(j / n)
+    def f(n, j, coeff):
+        lvl_factor = (j + 1) / math.sqrt(1 / n)
         lvl_t = threshold * lvl_factor
         if coeff < 0:
             if -coeff < lvl_t:
@@ -231,7 +231,7 @@ class WaveletDensityEstimator(object):
             for ix, qx in qxs:
                 wavef = self.wave_funs[qx]
                 for zs, coeff in self.coeffs[j][qx].iteritems():
-                    coeff_t = self.thresholding(self.n, j, coeff) if threshold else coeff
+                    coeff_t = self.thresholding(self.n, j - self.j0, coeff) if threshold else coeff
                     vals = coeff_t * wavef(jpow2, zs, coords)
                     xs_sum += vals
         def pdffun(coords):
