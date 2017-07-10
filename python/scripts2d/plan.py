@@ -25,7 +25,7 @@ import scripts2d.utils as u
 #   gen item plan for j0=0..2 (incl), j1=j0-..5, k=1,2,4,8,..sqrt(n)/4
 # generate then PBS that runs "run_for" in parallel #plans nodes
 
-BAG_SIZE=2000
+BAG_SIZE=500
 
 PBS="""
 #!/bin/bash
@@ -59,7 +59,7 @@ def write_pbs(dist_code, wave_code, num):
 
 def gen_samples(dist_code):
     dist = u.dist_from_code(dist_code)
-    for n in [500, 1000, 2000, 5000]:
+    for n in [128,256,512,1024,2048,4096]:
         for i in range(500):
             data = dist.rvs(n)
             fname = u.write_sample(n, i, data)
@@ -68,10 +68,10 @@ def gen_samples(dist_code):
 def main(dist_code, wave_code):
     plans = []
     for fname, n, dist in gen_samples(dist_code):
-        for j0 in range(0, 2):
-            for j1 in range(j0 - 1, j0 + 4):
+        for j0 in range(0, 3):
+            for j1 in range(j0 - 1, j0 + 3):
                 k = 1
-                while k * k * 2 < n:
+                while k * k < n:
                     plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
                     k = int(1.5 * k) + 1
     u.write_plans(plans)

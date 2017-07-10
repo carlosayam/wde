@@ -118,8 +118,8 @@ def gridify_xs(j0, j1, xs, minx, maxx):
     return grid_xs
 
 def zs_range(wavef, minx, maxx, j):
-    zs_min = np.ceil((2 ** j) * minx - wavef.support[1])
-    zs_max = np.floor((2 ** j) * maxx - wavef.support[0])
+    zs_min = np.floor((2 ** j) * minx - wavef.support[1]) - 1
+    zs_max = np.ceil((2 ** j) * maxx - wavef.support[0]) + 1
     return zs_min, zs_max
     
 def calc_coeff(wave_tensor_qx, jpow, zs, xs, xs_balls):
@@ -127,9 +127,13 @@ def calc_coeff(wave_tensor_qx, jpow, zs, xs, xs_balls):
     all_prods = vals * xs_balls[:,0]
     return all_prods.sum()
 
+def calc_num(suppf_tensor_qx, jpow, zs, xs):
+    vals = suppf_tensor_qx(jpow, zs, xs)
+    return vals.sum()
+
 def soft_threshold(threshold):
-    def f(n, j, coeff):
-        lvl_factor = (j + 1) / math.sqrt(1 / n)
+    def f(n, j, dn, coeff):
+        lvl_factor = math.sqrt(j + 1) / math.sqrt(n)
         lvl_t = threshold * lvl_factor
         if coeff < 0:
             if -coeff < lvl_t:
@@ -144,8 +148,8 @@ def soft_threshold(threshold):
     return f
 
 def hard_threshold(threshold):
-    def f(n, j, coeff):
-        lvl_factor = (j + 1) / math.sqrt(1 / n)
+    def f(n, j, dn, coeff):
+        lvl_factor = math.sqrt(j + 1) / math.sqrt(n)
         lvl_t = threshold * lvl_factor
         if coeff < 0:
             if -coeff < lvl_t:
@@ -159,6 +163,31 @@ def hard_threshold(threshold):
                 return coeff
     return f
 
+def block_threshold(dn_threshold):
+    def f(n, j, dn, coeff):
+        if dn < dn_threshold:
+            return 0
+        else:
+            return coeff
+    return f
+
+def soft_block_threshold(th1, th2):
+    def f(n, j, dn, coeff):
+        if dn == 0:
+            return 0
+        lvl_t = th1 * math.sqrt(j + 1) / math.sqrt(dn) + th2
+        if coeff < 0:
+            if -coeff < lvl_t:
+                return 0
+            else:
+                return coeff + lvl_t
+        else:
+            if coeff < lvl_t:
+                return 0
+            else:
+                return coeff - lvl_t
+    return f
+
 class WaveletDensityEstimator(object):
     def __init__(self, wave_name, k=1, j0=1, j1=None, thresholding=None):
         self.wave = pywt.Wavelet(wave_name)
@@ -166,8 +195,9 @@ class WaveletDensityEstimator(object):
         self.j0 = j0
         self.j1 = j1 if j1 is not None else (j0 - 1)
         self.phi_support, self.psi_support = wave_support_info(self.wave)
+        self.pdf = None
         if thresholding is None:
-            self.thresholding = lambda n, j, c: c
+            self.thresholding = lambda n, j, dn, c: c
         else:
             self.thresholding = thresholding
 
@@ -185,7 +215,7 @@ class WaveletDensityEstimator(object):
 
     def calc_wavefuns(self):
         self.wave_funs = {}
-        phi, psi, _ = self.wave.wavefun(level=8)
+        phi, psi, _ = self.wave.wavefun(level=12)
         phi = interp1d(np.linspace(*self.phi_support, num=len(phi)), phi, fill_value=0.0, bounds_error=False)
         psi = interp1d(np.linspace(*self.psi_support, num=len(psi)), psi, fill_value=0.0, bounds_error=False)
         for wave_x, qx in all_qx(self.dim):
@@ -202,6 +232,7 @@ class WaveletDensityEstimator(object):
 
     def do_calculate(self, xs, xs_balls):
         self.coeffs = {}
+        self.nums = {}
         qxs = list(all_qx(self.dim))
         norm_const = self.do_calculate_j(self.j0, qxs[0:1], xs, xs_balls)
         for j in range(self.j0, self.j1 + 1):
@@ -212,18 +243,29 @@ class WaveletDensityEstimator(object):
         jpow2 = 2 ** j
         if j not in self.coeffs:
             self.coeffs[j] = {}
+            self.nums[j] = {}
         norm_j = 0.0
         for ix, qx in qxs:
             wavef = self.wave_funs[qx]
             zs_min, zs_max = zs_range(wavef, self.minx, self.maxx, j)
             self.coeffs[j][qx] = {}
+            self.nums[j][qx] = {}
             for zs in itt.product(*all_zs_tensor(zs_min, zs_max)):
-                v = self.coeffs[j][qx][zs] = calc_coeff(wavef, jpow2, zs, xs, xs_balls)
+                num = calc_num(wavef.suppf, jpow2, zs, xs)
+                self.nums[j][qx][zs] = num
+                v = calc_coeff(wavef, jpow2, zs, xs, xs_balls)
+                self.coeffs[j][qx][zs] = v
                 norm_j += v * v
         return norm_j
 
     def get_betas(self, j):
         return [coeff for ix, qx in list(all_qx(self.dim))[1:] for coeff in self.coeffs[j][qx].values()]
+
+    def get_nums(self):
+        return [coeff
+                for j in self.nums
+                    for ix, qx in list(all_qx(self.dim))[1:]
+                        for coeff in self.nums[j][qx].values()]
 
     def calc_pdf(self):
         def pdffun_j(coords, xs_sum, j, qxs, threshold):
@@ -231,7 +273,8 @@ class WaveletDensityEstimator(object):
             for ix, qx in qxs:
                 wavef = self.wave_funs[qx]
                 for zs, coeff in self.coeffs[j][qx].iteritems():
-                    coeff_t = self.thresholding(self.n, j - self.j0, coeff) if threshold else coeff
+                    num = self.nums[j][qx][zs]
+                    coeff_t = self.thresholding(self.n, j - self.j0, num, coeff) if threshold else coeff
                     vals = coeff_t * wavef(jpow2, zs, coords)
                     xs_sum += vals
         def pdffun(coords):
@@ -240,11 +283,13 @@ class WaveletDensityEstimator(object):
             pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):
                 pdffun_j(coords, xs_sum, j, qxs[1:], True)
+            #print 'SUM =',(xs_sum * xs_sum).sum()
             return (xs_sum * xs_sum)/self.norm_const
-        X = np.linspace(0.0,1.0, num=75)
-        Y = np.linspace(0.0,1.0, num=75)
+        X = np.linspace(0.0,1.0, num=256)
+        Y = np.linspace(0.0,1.0, num=256)
         pred_Z = pdffun(tuple(np.meshgrid(X, Y)))
-        factor = (len(X) * len(Y) / pred_Z.sum())
+        full_sum = pred_Z.sum()
+        factor = (len(X) * len(Y) / full_sum) if full_sum > 0 else 0.0
         def pdf2(coords):
             return pdffun(coords) * factor
         return pdf2

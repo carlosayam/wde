@@ -98,8 +98,8 @@ def read_plans(bag_size, bag_number):
     return rows
 
 def mise_mesh():
-    X = np.linspace(0.0,1.0, num=75)
-    Y = np.linspace(0.0,1.0, num=75)
+    X = np.linspace(0.0,1.0, num=256)
+    Y = np.linspace(0.0,1.0, num=256)
     return np.meshgrid(X, Y) # X,Y
 
 def write_dist_pdf(dist):
@@ -119,12 +119,11 @@ def read_dist_pdf():
     return DIST_PDFS[fname]
 
 def calc_ise(pred_pdf, pdf_vals):
-    X = np.linspace(0.0,1.0, num=75)
-    Y = np.linspace(0.0,1.0, num=75)
-    pred_Z = pred_pdf(tuple(np.meshgrid(X, Y)))
+    pred_Z = pred_pdf(tuple(mise_mesh()))
     diff = pred_Z - pdf_vals
     err = (diff * diff).sum()
-    return err / (len(X) * len(Y))
+    nns = reduce(lambda x, y: x * y, pred_Z.shape)
+    return err / nns
 
 def write_ise(fhandle, fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time):
     new_entry = '"%s", "%s", "%s", %d, %d, %d, %d, %f, %f\n' % (fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
