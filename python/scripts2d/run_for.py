@@ -20,7 +20,7 @@ import scripts2d.utils as u
 # data2d/results/{sample_file}-mise.csv :  calculated MISE
 
 def exec_plan(fh_ise, fh_coeffs, row):
-    fname, wave_code, dist_code, j0, j1, k = row['fname'], row['wave_code'], row['dist_code'], row['j0'], row['j1'], row['k']
+    fname, wave_code, dist_code, j0, j1, k, do_coeffs = row['fname'], row['wave_code'], row['dist_code'], row['j0'], row['j1'], row['k'], row['do_coeffs']
     data = u.read_sample(fname)
     n = len(data)
     pdf_vals = u.read_dist_pdf()
@@ -30,7 +30,8 @@ def exec_plan(fh_ise, fh_coeffs, row):
     elapsed_time = (datetime.datetime.now() - t0).total_seconds()
     ise = u.calc_ise(wde.pdf, pdf_vals)
     u.write_ise(fh_ise, fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
-    u.write_coeffs(fh_coeffs, fname, dist_code, wave_code, n, j0, j1, k, wde)
+    if do_coeffs:
+        u.write_coeffs(fh_coeffs, fname, dist_code, wave_code, n, j0, j1, k, wde)
 
 def main():
     bag_size = int(sys.argv[1])
