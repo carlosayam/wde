@@ -137,5 +137,7 @@ def write_coeffs(fh_coeffs, fname, dist_code, wave_code, n, j0, j1, k, wde):
     for j, coeffs_j in wde.coeffs.iteritems():
         for qx, coeffs_qx in coeffs_j.iteritems():
             for zs, coeff in coeffs_qx.iteritems():
+                if abs(coeff) < 0.000001:
+                    continue
                 new_entry = '"%s", "%s", "%s", %d, %d, %d, %d, %d, "%s", "%s", %f\n' % (fname, dist_code, wave_code, n, j0, j1, k, j, str(qx), str(zs), coeff)
                 fh_coeffs.write(new_entry)
