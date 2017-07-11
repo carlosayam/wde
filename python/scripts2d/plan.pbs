@@ -11,11 +11,11 @@
 module purge
 module add python/2.7.12
 
-RESP_DIR="$PBS_O_HOME/RESP/mult/db4"
+RESP_DIR="$PBS_O_HOME/RESP/$DIST/$WAVELET"
 SW_DIR="$PBS_O_HOME/WDE/wde/python"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
 
 . $SW_DIR/wdeenv/bin/activate
-$SW_DIR/scripts2d/plan.py mult db4
+$SW_DIR/scripts2d/plan.py $DIST $WAVELET
