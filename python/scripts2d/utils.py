@@ -119,10 +119,14 @@ def read_dist_pdf():
     return DIST_PDFS[fname]
 
 def calc_ise(pred_pdf, pdf_vals):
-    pred_Z = pred_pdf(tuple(mise_mesh()))
+    XX, YY = mise_mesh()
+    pred_Z = pred_pdf((XX, YY))
     diff = pred_Z - pdf_vals
+    # Ok, because we know domain [0,1]x[0,1] => area = 1 x 1 = 1
     err = (diff * diff).sum()
-    nns = reduce(lambda x, y: x * y, pred_Z.shape)
+    # extreme values are zero, which do not contribute to integral, hence correction
+    # in size "_ - 1".
+    nns = reduce(lambda x, y: (x-1) * (y-1), pred_Z.shape)
     return err / nns
 
 def write_ise(fhandle, fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time):
