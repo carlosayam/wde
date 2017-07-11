@@ -30,7 +30,7 @@ def exec_plan(fh_ise, fh_coeffs, row):
     elapsed_time = (datetime.datetime.now() - t0).total_seconds()
     ise = u.calc_ise(wde.pdf, pdf_vals)
     u.write_ise(fh_ise, fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
-    u.write_coeffs(fh_coeffs, fname, disc_code, wave_code, n, j0, j1, k, wde)
+    u.write_coeffs(fh_coeffs, fname, dist_code, wave_code, n, j0, j1, k, wde)
 
 def main():
     bag_size = int(sys.argv[1])
