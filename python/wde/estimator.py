@@ -205,7 +205,7 @@ class WaveletDensityEstimator(object):
         "Fit estimator to data. xs is a numpy array of dimension n x d, n = samples, d = dimensions"
         self.dim = xs.shape[1]
         self.dimpow = 2 ** self.dim
-        self.calc_wavefuns()
+        self.calc_wavefuns(self.dim)
         self.minx = np.amin(xs, axis=0)
         self.maxx = np.amax(xs, axis=0)
         self.n = xs.shape[0]
@@ -213,12 +213,12 @@ class WaveletDensityEstimator(object):
         self.pdf = self.calc_pdf()
         return True
 
-    def calc_wavefuns(self):
+    def calc_wavefuns(self, dim):
         self.wave_funs = {}
         phi, psi, _ = self.wave.wavefun(level=12)
         phi = interp1d(np.linspace(*self.phi_support, num=len(phi)), phi, fill_value=0.0, bounds_error=False)
         psi = interp1d(np.linspace(*self.psi_support, num=len(psi)), psi, fill_value=0.0, bounds_error=False)
-        for wave_x, qx in all_qx(self.dim):
+        for wave_x, qx in all_qx(dim):
             f = partial(wave_tensor, qx, phi, psi)
             f.qx = qx
             f.support = support_tensor(qx, self.phi_support, self.psi_support)
