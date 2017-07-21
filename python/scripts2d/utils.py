@@ -64,6 +64,43 @@ def dist_from_code(code):
             [np.array([[sigma/6, 0], [0, sigma/6]]), np.array([[0.1, sigma/8], [sigma/8, 0.1]])],
             code=code
             )
+    elif code == 'mix1':
+        sigma = 0.04
+        m1 = np.array([[sigma/6, 0], [0, sigma/6]])
+        return TruncatedMultiNormal2D(
+            [1/2, 1/2],
+            [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
+            [m1, m1],
+            code=code
+            )
+    elif code == 'mix2':
+        sigma = 0.04
+        angle = 30.
+        theta = (angle/180.) * np.pi
+        rot = np.array([[np.cos(theta), -np.sin(theta)],
+                       [np.sin(theta),  np.cos(theta)]])
+        m1 = np.array([[sigma/6, 0], [0, sigma/6]])
+        m2 = np.dot(rot, m1)
+        return TruncatedMultiNormal2D(
+            [1/2, 1/2],
+            [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
+            [m1, m2],
+            code=code
+            )
+    elif code == 'mix3':
+        sigma = 0.04
+        angle = 30.
+        theta = (angle/180.) * np.pi
+        rot = np.array([[np.cos(theta), -np.sin(theta)],
+                       [np.sin(theta),  np.cos(theta)]])
+        m1 = np.array([[sigma/6, 0], [0, sigma/6]])
+        m2 = np.dot(rot, m1)
+        return TruncatedMultiNormal2D(
+            [1/2, 1/2],
+            [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
+            [m2, m2],
+            code=code
+            )
     else:
         raise NotImplemented('Unknown distribution code [%s]' % code)
 
