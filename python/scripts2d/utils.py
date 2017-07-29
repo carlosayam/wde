@@ -48,7 +48,9 @@ class TruncatedMultiNormal2D(object):
         pos = np.empty(grid[0].shape + (2,))
         pos[:, :, 0], pos[:, :, 1] = grid
         vals = [dist.pdf(pos) for dist in self.dists]
-        pdf_vals = np.add(*[vals[i] * self.probs[i] for i in range(len(self.probs))])
+        pdf_vals = vals[0] * self.probs[0]
+        for i in range(len(self.probs) - 1):
+            pdf_vals = np.add(pdf_vals, vals[i+1] * self.probs[i+1])
         total = pdf_vals.sum()
         #pdf_vals = pdf_vals / total
         return pdf_vals
@@ -65,8 +67,8 @@ def dist_from_code(code):
             code=code
             )
     elif code == 'mix1':
-        sigma = 0.04
-        m1 = np.array([[sigma/6, 0], [0, sigma/6]])
+        sigma = 0.05
+        m1 = np.array([[sigma/6, 0], [0, sigma/6.5]])
         return TruncatedMultiNormal2D(
             [1/2, 1/2],
             [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
@@ -74,31 +76,33 @@ def dist_from_code(code):
             code=code
             )
     elif code == 'mix2':
-        sigma = 0.04
-        angle = 30.
+        sigma = 0.05
+        angle = 10.
         theta = (angle/180.) * np.pi
         rot = np.array([[np.cos(theta), -np.sin(theta)],
                        [np.sin(theta),  np.cos(theta)]])
-        m1 = np.array([[sigma/6, 0], [0, sigma/6]])
-        m2 = np.dot(rot, m1)
+        m1 = np.array([[sigma/6, 0], [0, sigma/8]])
+        m2 = np.dot(rot, np.dot(m1, rot.T))
         return TruncatedMultiNormal2D(
             [1/2, 1/2],
-            [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
+            [np.array([0.4, 0.3]), np.array([0.7, 0.7])],
             [m1, m2],
             code=code
             )
     elif code == 'mix3':
-        sigma = 0.04
-        angle = 30.
+        sigma = 0.03
+        angle = 10.
         theta = (angle/180.) * np.pi
         rot = np.array([[np.cos(theta), -np.sin(theta)],
                        [np.sin(theta),  np.cos(theta)]])
-        m1 = np.array([[sigma/6, 0], [0, sigma/6]])
-        m2 = np.dot(rot, m1)
+        m1 = np.array([[sigma/6, 0], [0, sigma/7]])
+        m2 = np.dot(rot, np.dot(m1, rot.T))
+        prop = np.array([8,4,2,1])
+        prop = prop/prop.sum()
         return TruncatedMultiNormal2D(
-            [1/2, 1/2],
-            [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
-            [m2, m2],
+            prop.tolist(),
+            [np.array([0.2, 0.3]), np.array([0.5, 0.5]), np.array([0.65, 0.7]), np.array([0.82, 0.85])],
+            [m1, m2/2, m1/4, m2/8],
             code=code
             )
     else:

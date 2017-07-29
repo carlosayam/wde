@@ -9,6 +9,7 @@ import pandas
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/..')
 
 from wde.estimator import WaveletDensityEstimator
+from wde.simple_estimator import SimpleWaveletDensityEstimator
 import scripts2d.utils as u
 
 # parameters
@@ -24,7 +25,10 @@ def exec_plan(fh_ise, fh_coeffs, row):
     data = u.read_sample(fname)
     n = len(data)
     pdf_vals = u.read_dist_pdf()
-    wde = WaveletDensityEstimator(wave_code, k = k, j0 = j0, j1 = j1)
+    if wave_code[0:4] == 'sim-':
+        wde = SimpleWaveletDensityEstimator(wave_code[4:], j0 = j0, j1 = j1)
+    else:
+        wde = WaveletDensityEstimator(wave_code, k = k, j0 = j0, j1 = j1)
     t0 = datetime.datetime.now()
     wde.fit(data)
     elapsed_time = (datetime.datetime.now() - t0).total_seconds()

@@ -6,10 +6,9 @@ from scipy.interpolate import interp1d
 from functools import partial
 from .common import *
 
-class WaveletDensityEstimator(object):
-    def __init__(self, wave_name, k=1, j0=1, j1=None, thresholding=None):
+class SimpleWaveletDensityEstimator(object):
+    def __init__(self, wave_name, j0=1, j1=None, thresholding=None):
         self.wave = pywt.Wavelet(wave_name)
-        self.k = k
         self.j0 = j0
         self.j1 = j1 if j1 is not None else (j0 - 1)
         self.phi_support, self.psi_support = wave_support_info(self.wave)
@@ -23,7 +22,7 @@ class WaveletDensityEstimator(object):
         "Fit estimator to data. xs is a numpy array of dimension n x d, n = samples, d = dimensions"
         self.dim = xs.shape[1]
         self.dimpow = 2 ** self.dim
-        self.calc_wavefuns(self.dim)
+        self.calc_wavefuns()
         self.minx = np.amin(xs, axis=0)
         self.maxx = np.amax(xs, axis=0)
         self.n = xs.shape[0]
@@ -31,12 +30,12 @@ class WaveletDensityEstimator(object):
         self.pdf = self.calc_pdf()
         return True
 
-    def calc_wavefuns(self, dim):
+    def calc_wavefuns(self):
         self.wave_funs = {}
-        phi, psi, _ = self.wave.wavefun(level=12)
+        phi, psi, _ = self.wave.wavefun(level=8)
         phi = interp1d(np.linspace(*self.phi_support, num=len(phi)), phi, fill_value=0.0, bounds_error=False)
         psi = interp1d(np.linspace(*self.psi_support, num=len(psi)), psi, fill_value=0.0, bounds_error=False)
-        for wave_x, qx in all_qx(dim):
+        for wave_x, qx in all_qx(self.dim):
             f = partial(wave_tensor, qx, phi, psi)
             f.qx = qx
             f.support = support_tensor(qx, self.phi_support, self.psi_support)
@@ -44,20 +43,15 @@ class WaveletDensityEstimator(object):
             self.wave_funs[tuple(qx)] = f
 
     def calc_coefficients(self, xs):
-        #grid_xs = gridify_xs(self.j0, self.j1, xs, self.minx, self.maxx)
-        xs_balls = calculate_nearest_balls(self.k, xs)
-        self.do_calculate(xs, xs_balls)
-
-    def do_calculate(self, xs, xs_balls):
         self.coeffs = {}
         self.nums = {}
         qxs = list(all_qx(self.dim))
-        norm_const = self.do_calculate_j(self.j0, qxs[0:1], xs, xs_balls)
+        norm_const = self.do_calculate_j(self.j0, qxs[0:1], xs)
         for j in range(self.j0, self.j1 + 1):
-            norm_const += self.do_calculate_j(j, qxs[1:], xs, xs_balls)
+            norm_const += self.do_calculate_j(j, qxs[1:], xs)
         self.norm_const = norm_const
 
-    def do_calculate_j(self, j, qxs, xs, xs_balls):
+    def do_calculate_j(self, j, qxs, xs):
         jpow2 = 2 ** j
         if j not in self.coeffs:
             self.coeffs[j] = {}
@@ -69,10 +63,8 @@ class WaveletDensityEstimator(object):
             self.coeffs[j][qx] = {}
             self.nums[j][qx] = {}
             for zs in itt.product(*all_zs_tensor(zs_min, zs_max)):
-                num = calc_num(wavef.suppf, jpow2, zs, xs)
-                self.nums[j][qx][zs] = num
-                v = calc_coeff(wavef, jpow2, zs, xs, xs_balls)
-                self.coeffs[j][qx][zs] = v
+                v = self.coeffs[j][qx][zs] = calc_coeff_simple(wavef, jpow2, zs, xs)
+                self.nums[j][qx][zs] = calc_num(wavef.suppf, jpow2, zs, xs)
                 norm_j += v * v
         return norm_j
 
@@ -101,8 +93,7 @@ class WaveletDensityEstimator(object):
             pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):
                 pdffun_j(coords, xs_sum, j, qxs[1:], True)
-            #print 'SUM =',(xs_sum * xs_sum).sum()
-            return (xs_sum * xs_sum)/self.norm_const
+            return np.maximum(xs_sum/self.norm_const, 0.0)
         # TODO: this is 2D only
         X = np.linspace(0.0,1.0, num=256)
         Y = np.linspace(0.0,1.0, num=256)
