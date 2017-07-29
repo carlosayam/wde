@@ -38,6 +38,7 @@ def exec_plan(fh_ise, fh_coeffs, row):
         u.write_coeffs(fh_coeffs, fname, dist_code, wave_code, n, j0, j1, k, wde)
 
 def main():
+    start_time = datetime.datetime.now()
     bag_size = int(sys.argv[1])
     bag_number = int(sys.argv[2])
     plans = u.read_plans(bag_size, bag_number)
@@ -50,6 +51,8 @@ def main():
                 fh_coeffs.write(headers)
             for _, row in plans.iterrows():
                 exec_plan(fh_ise, fh_coeffs, row)
+    end_time = datetime.datetime.now()
+    print 'Run %d took %f seconds' % (bag_number, (end_time - start_time).total_seconds())
 
 
 if __name__ == "__main__":
