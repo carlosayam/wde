@@ -34,8 +34,8 @@ def exec_plan(fh_ise, fh_coeffs, row):
     elapsed_time = (datetime.datetime.now() - t0).total_seconds()
     ise = u.calc_ise(wde.pdf, pdf_vals)
     u.write_ise(fh_ise, fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
-    if do_coeffs:
-        u.write_coeffs(fh_coeffs, fname, dist_code, wave_code, n, j0, j1, k, wde)
+    #if do_coeffs:
+    #    u.write_coeffs(fh_coeffs, fname, dist_code, wave_code, n, j0, j1, k, wde)
 
 def main():
     start_time = datetime.datetime.now()
@@ -43,7 +43,8 @@ def main():
     bag_number = int(sys.argv[2])
     plans = u.read_plans(bag_size, bag_number)
     with open("data2d/ise-%04d.csv" % bag_number, "w") as fh_ise:
-        with open("data2d/coeffs-%04d.csv" % bag_number, "w") as fh_coeffs:
+        #with open("data2d/coeffs-%04d.csv" % bag_number, "w") as fh_coeffs:
+            fh_coeffs = None
             if bag_number == 1:
                 headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time\n'
                 fh_ise.write(headers)
