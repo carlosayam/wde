@@ -103,12 +103,13 @@ class WaveletDensityEstimator(object):
                 pdffun_j(coords, xs_sum, j, qxs[1:], True)
             #print 'SUM =',(xs_sum * xs_sum).sum()
             return (xs_sum * xs_sum)/self.norm_const
-        # TODO: this is 2D only
-        X = np.linspace(0.0,1.0, num=256)
-        Y = np.linspace(0.0,1.0, num=256)
-        pred_Z = pdffun(tuple(np.meshgrid(X, Y)))
-        full_sum = pred_Z.sum()
-        factor = (len(X) * len(Y) / full_sum) if full_sum > 0 else 0.0
-        def pdf2(coords):
-            return pdffun(coords) * factor
-        return pdf2
+        # # TODO: this is 2D only
+        # # grid does not cover all due to support
+        # X = np.linspace(0.0,1.0, num=256)
+        # Y = np.linspace(0.0,1.0, num=256)
+        # pred_Z = pdffun(tuple(np.meshgrid(X, Y)))
+        # full_sum = pred_Z.sum()
+        # factor = ((len(X)-1) * (len(Y)-1) / full_sum) if full_sum > 0 else 0.0
+        # def pdf2(coords):
+        #     return pdffun(coords) * factor
+        return pdffun

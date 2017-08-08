@@ -46,17 +46,15 @@ class SimpleWaveletDensityEstimator(object):
         self.coeffs = {}
         self.nums = {}
         qxs = list(all_qx(self.dim))
-        norm_const = self.do_calculate_j(self.j0, qxs[0:1], xs)
+        self.do_calculate_j(self.j0, qxs[0:1], xs)
         for j in range(self.j0, self.j1 + 1):
-            norm_const += self.do_calculate_j(j, qxs[1:], xs)
-        self.norm_const = norm_const
+            self.do_calculate_j(j, qxs[1:], xs)
 
     def do_calculate_j(self, j, qxs, xs):
         jpow2 = 2 ** j
         if j not in self.coeffs:
             self.coeffs[j] = {}
             self.nums[j] = {}
-        norm_j = 0.0
         for ix, qx in qxs:
             wavef = self.wave_funs[qx]
             zs_min, zs_max = zs_range(wavef, self.minx, self.maxx, j)
@@ -65,8 +63,6 @@ class SimpleWaveletDensityEstimator(object):
             for zs in itt.product(*all_zs_tensor(zs_min, zs_max)):
                 v = self.coeffs[j][qx][zs] = calc_coeff_simple(wavef, jpow2, zs, xs)
                 self.nums[j][qx][zs] = calc_num(wavef.suppf, jpow2, zs, xs)
-                norm_j += v * v
-        return norm_j
 
     def get_betas(self, j):
         return [coeff for ix, qx in list(all_qx(self.dim))[1:] for coeff in self.coeffs[j][qx].values()]
@@ -93,13 +89,5 @@ class SimpleWaveletDensityEstimator(object):
             pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):
                 pdffun_j(coords, xs_sum, j, qxs[1:], True)
-            return np.maximum(xs_sum/self.norm_const, 0.0)
-        # TODO: this is 2D only
-        X = np.linspace(0.0,1.0, num=256)
-        Y = np.linspace(0.0,1.0, num=256)
-        pred_Z = pdffun(tuple(np.meshgrid(X, Y)))
-        full_sum = pred_Z.sum()
-        factor = (len(X) * len(Y) / full_sum) if full_sum > 0 else 0.0
-        def pdf2(coords):
-            return pdffun(coords) * factor
-        return pdf2
+            return xs_sum
+        return pdffun
