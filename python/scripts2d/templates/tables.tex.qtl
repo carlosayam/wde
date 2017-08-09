@@ -1,0 +1,38 @@
+%%% computer generated %%%
+\begin{table}[ht!]
+  \centering
+  #for $tabdata in $data:
+    \begin{minipage}[t]{$width\textwidth}
+      \centering
+      \textbf{$tabdata.title} \\
+      \vspace{6pt}
+      \begin{tabular}{|l|l|r|r|}
+        \hline
+        \textbf{n} & \textbf{J} & \textbf{WDE} & \textbf{Simple} \\
+        #for $data_n in $tabdata.ns:
+          #for $data_j in $data_n.js:
+            #if $data_j.first:
+              \hline
+              \multirow{$data_n.len_js}{*}{$data_n.n}
+            #else
+              \cline{2-4}
+            #end if
+            #if $data_j.best:
+              & \textbf{$data_j.j} & \textbf{$data_j.mise}
+            #else
+              & $data_j.j & $data_j.mise
+            #end if
+            #if $data_j.simple_best:
+               & \textbf{$data_j.simple_mise} \\
+            #else
+               & $data_j.simple_mise \\
+            #end if
+          #end for
+        #end for
+        \hline
+      \end{tabular}
+    \end{minipage}
+  #end for
+  \caption{Comparison MISE new estimator vs simple wavelet estimator -FIX-}
+  \label{tab:mise}
+\end{table}

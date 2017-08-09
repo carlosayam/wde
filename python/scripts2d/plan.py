@@ -70,10 +70,9 @@ def main(dist_code, wave_code):
     for fname, n, dist in gen_samples(dist_code):
         for j0 in range(0, 3):
             for j1 in range(j0 - 1, j0 + 4):
-                do_coeffs = (j0 == 0) and (j1 == 3)
                 k = 1
                 while k * k < n:
-                    plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, do_coeffs=do_coeffs, rand=random.random()))
+                    plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
                     k = 2 * k
     u.write_plans(plans)
     u.write_dist_pdf(u.dist_from_code(dist_code))

@@ -38,8 +38,9 @@ class TransformedDirichlet2D(object):
     def _pdf(self, grid):
         XX, YY = grid
         XX = np.power(XX, 4)
-        ZZ = 1 - (XX + YY)
-        return self.dist.pdf((XX, YY, ZZ))
+        ZZ = 1 - XX - YY
+        z_pos = (ZZ >= 0) & (ZZ <= 1)
+        return self.dist.pdf(ZZ)
 
     def pdf(self, grid):
         return self._pdf(grid)/self.sum

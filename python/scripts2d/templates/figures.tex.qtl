@@ -1,0 +1,11 @@
+%%% computer generated %%%
+\begin{figure}[t!] \label{fig:$label}
+  #for $figure in $figures:
+    \begin{subfigure}[t]{$width\textwidth}
+      \includegraphics[width=\textwidth]{images/$figure.fname}
+		  \caption{$figure.caption}
+		  \label{fig:$figure.label}
+	  \end{subfigure}
+  #end for
+	\caption{Distributions}
+\end{figure}
