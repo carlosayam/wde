@@ -20,12 +20,40 @@ class Beta2D(object):
     def pdf(self, grid):
         return self.dist.pdf(grid[0]) * self.dist.pdf(grid[1])
 
+class TransformedDirichlet2D(object):
+    def __init__(self, alphas, code='diri'):
+        if len(alphas) != 3 or min(alphas) <= 0:
+            raise ValueError('alphas must be 3 positive numbers')
+        self.dist = stats.dirichlet(alpha=alphas)
+        self.code = code
+        # this code is 2D specific
+        z = self._pdf(mise_mesh())
+        nns = reduce(lambda x, y: (x-1) * (y-1), z.shape)
+        self.sum = z.sum()/nns
+
+    def rvs(self, num):
+        x = self.dist.rvs(num)
+        return np.stack([np.power(x[:,0],1/4), x[:,1]], axis=1)
+
+    def _pdf(self, grid):
+        XX, YY = grid
+        XX = np.power(XX, 4)
+        ZZ = 1 - (XX + YY)
+        return self.dist.pdf((XX, YY, ZZ))
+
+    def pdf(self, grid):
+        return self._pdf(grid)/self.sum
+
+
 class TruncatedMultiNormal2D(object):
     def __init__(self, probs, mus, covs, code='mult'):
         self.code = code
-        self._pdf = None
         self.probs = probs
         self.dists = [stats.multivariate_normal(mean=mu, cov=cov) for mu, cov in zip(mus, covs)]
+        # this code is 2D specific
+        z = self._pdf(mise_mesh())
+        nns = reduce(lambda x, y: (x-1) * (y-1), z.shape)
+        self.sum = z.sum()/nns
 
     def _rvs(self):
         while True:
@@ -44,16 +72,18 @@ class TruncatedMultiNormal2D(object):
                         break
         return np.array(data)
 
-    def pdf(self, grid):
+    def _pdf(self, grid):
         pos = np.empty(grid[0].shape + (2,))
         pos[:, :, 0], pos[:, :, 1] = grid
         vals = [dist.pdf(pos) for dist in self.dists]
         pdf_vals = vals[0] * self.probs[0]
         for i in range(len(self.probs) - 1):
             pdf_vals = np.add(pdf_vals, vals[i+1] * self.probs[i+1])
-        total = pdf_vals.sum()
         #pdf_vals = pdf_vals / total
         return pdf_vals
+
+    def pdf(self, grid):
+        return self._pdf(grid)/self.sum
 
 def dist_from_code(code):
     if code == 'beta':
@@ -105,6 +135,8 @@ def dist_from_code(code):
             [m1, m2/2, m1/4, m2/8],
             code=code
             )
+    elif code == 'diri':
+        return Dirichlet2D([2,3,7])
     else:
         raise NotImplemented('Unknown distribution code [%s]' % code)
 
