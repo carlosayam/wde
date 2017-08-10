@@ -61,7 +61,7 @@ class SimpleWaveletDensityEstimator(object):
             self.coeffs[j][qx] = {}
             self.nums[j][qx] = {}
             for zs in itt.product(*all_zs_tensor(zs_min, zs_max)):
-                v = self.coeffs[j][qx][zs] = calc_coeff_simple(wavef, jpow2, zs, xs)
+                self.coeffs[j][qx][zs] = calc_coeff_simple(wavef, jpow2, zs, xs)
                 self.nums[j][qx][zs] = calc_num(wavef.suppf, jpow2, zs, xs)
 
     def get_betas(self, j):

@@ -101,6 +101,5 @@ class WaveletDensityEstimator(object):
             pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):
                 pdffun_j(coords, xs_sum, j, qxs[1:], True)
-            #print 'SUM =',(xs_sum * xs_sum).sum()
             return (xs_sum * xs_sum)/self.norm_const
         return pdffun
