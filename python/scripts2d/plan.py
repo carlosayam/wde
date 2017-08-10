@@ -57,26 +57,31 @@ def write_pbs(dist_code, wave_code, num):
     with open(fname, 'w') as f:
         f.write(pbs % (num // BAG_SIZE + 1))
 
-def gen_samples(dist_code):
-    dist = u.dist_from_code(dist_code)
-    for n in [128,256,512,1024,2048,4096]:
+def ns_for(dist):
+    if dist.code == 'mul2':
+        return [64,96,128,192,256,384]
+    return [128,256,512,1024,2048,4096]
+
+def gen_samples(dist):
+    for n in ns_for(dist):
         for i in range(500):
             data = dist.rvs(n)
             fname = u.write_sample(n, i, data)
-            yield fname, n, dist
+            yield fname, n
 
 def main(dist_code, wave_code):
     plans = []
-    for fname, n, dist in gen_samples(dist_code):
-        for j0 in range(0, 3):
-            for j1 in range(j0 - 1, j0 + 4):
-                if wave_code[0:4] == 'sim-':
-                    plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=1, rand=random.random()))
-                else:
-                    k = 1
-                    while k * k < n:
-                        plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
-                        k = 2 * k
+    dist = u.dist_from_code(dist_code)
+    for fname, n in gen_samples(dist):
+        for j0 in range(0, 4):
+            j1 = j0 - 1 # single level
+            if wave_code[0:4] == 'sim-':
+                plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=1, rand=random.random()))
+            else:
+                k = 1
+                while k * k < n:
+                    plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
+                    k = 2 * k
     u.write_plans(plans)
     u.write_dist_pdf(u.dist_from_code(dist_code))
     write_pbs(dist_code, wave_code, len(plans))

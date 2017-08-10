@@ -91,8 +91,11 @@ class TruncatedMultiNormal2D(object):
         return np.array(data)
 
     def _pdf(self, grid):
-        pos = np.empty(grid[0].shape + (2,))
-        pos[:, :, 0], pos[:, :, 1] = grid
+        if type(grid) == tuple or type(grid) == list:
+            pos = np.empty(grid[0].shape + (2,))
+            pos[:, :, 0], pos[:, :, 1] = grid
+        else:
+            pos = grid
         vals = [dist.pdf(pos) for dist in self.dists]
         pdf_vals = vals[0] * self.probs[0]
         for i in range(len(self.probs) - 1):
@@ -106,12 +109,12 @@ class TruncatedMultiNormal2D(object):
 def dist_from_code(code):
     if code == 'beta':
         return Beta2D(2, 4, code=code)
-    elif code == 'mult':
+    elif code == 'mult' or code == 'mul2':
         sigma = 0.01
         return TruncatedMultiNormal2D(
-            [1/9, 8/9],
+            [1.5/9, 7.5/9],
             [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
-            [np.array([[sigma/6, 0], [0, sigma/6]]), np.array([[0.1, sigma/8], [sigma/8, 0.1]])],
+            [np.array([[sigma/6, 0], [0, sigma/6]]), np.array([[0.015, sigma/64], [sigma/64, 0.015]])],
             code=code
             )
     elif code == 'mix1':
