@@ -83,7 +83,7 @@ def tex_figure(data):
 
 def generate_true_plots():
     data = []
-    for code, title in [('beta', 'Beta'), ('mix2','Gaussian mixture'), ('mix3', '3D Comb')]:
+    for code, title in [('mult', 'Gaussian mix 1'), ('mix2','Gaussian mix 2'), ('mix3', '2D Comb')]:
         fname = generate_plot(code)
         data.append(dict(label=code, fname=fname, caption=title))
     tex_figure(data)
@@ -139,7 +139,7 @@ def calc_table_data(dist_code, title):
 def generate_table_mise():
     template = TemplateFile('scripts2d/templates/tables.tex.qtl')
     data = []
-    for code, title in [('beta', 'Beta'), ('mix2','Gaussian mixture'), ('mix3', '2D Comb')]:
+    for code, title in [('mult', 'Gaussian mix 1'), ('mix2','Gaussian mix 2'), ('mix3', '2D Comb')]:
         data.append(calc_table_data(code, title))
     data = dict(
         data=data,

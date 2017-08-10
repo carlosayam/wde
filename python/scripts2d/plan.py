@@ -70,10 +70,13 @@ def main(dist_code, wave_code):
     for fname, n, dist in gen_samples(dist_code):
         for j0 in range(0, 3):
             for j1 in range(j0 - 1, j0 + 4):
-                k = 1
-                while k * k < n:
-                    plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
-                    k = 2 * k
+                if wave_code[0:4] == 'sim-':
+                    plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=1, rand=random.random()))
+                else:
+                    k = 1
+                    while k * k < n:
+                        plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
+                        k = 2 * k
     u.write_plans(plans)
     u.write_dist_pdf(u.dist_from_code(dist_code))
     write_pbs(dist_code, wave_code, len(plans))

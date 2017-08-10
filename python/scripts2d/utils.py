@@ -20,7 +20,7 @@ class Beta2D(object):
     def pdf(self, grid):
         return self.dist.pdf(grid[0]) * self.dist.pdf(grid[1])
 
-class TransformedDirichlet2D(object):
+class Dirichlet2D(object):
     def __init__(self, alphas, code='diri'):
         if len(alphas) != 3 or min(alphas) <= 0:
             raise ValueError('alphas must be 3 positive numbers')
@@ -33,16 +33,33 @@ class TransformedDirichlet2D(object):
 
     def rvs(self, num):
         x = self.dist.rvs(num)
-        return np.stack([np.power(x[:,0],1/4), x[:,1]], axis=1)
-
-    def _pdf(self, grid):
-        XX, YY = grid
-        XX = np.power(XX, 4)
-        ZZ = 1 - XX - YY
-        z_pos = (ZZ >= 0) & (ZZ <= 1)
-        return self.dist.pdf(ZZ)
+        return x[:,[0,1]]
 
     def pdf(self, grid):
+        ZZ = 1 - XX - YY
+        print ZZ.shape
+        zpos = (ZZ > 0) & (ZZ <= 1)
+        print zpos.shape
+        ZZm = ZZ[zpos]
+        XXm = XX[zpos]
+        YYm = YY[zpos]
+        dist = stats.dirichlet(alpha=[2,3,5])
+        print ZZm.shape
+        print np.min(XXm),np.min(YYm),np.min(ZZm)
+        vals = dist.pdf((XXm, YYm, ZZm))
+        resp = np.zeros(ZZ.shape)
+        it = np.nditer(resp, op_flags=['writeonly'])
+        it2 = np.nditer(zpos, op_flags=['readonly'])
+        ix = 0
+        while not it.finished:
+            if it2[0]:
+                it[0] = vals[ix]
+                ix += 1
+            it.iternext()
+            it2.iternext()
+        print ix, vals.shape
+        print resp.shape
+        print resp.sum()/(255*255)
         return self._pdf(grid)/self.sum
 
 
@@ -90,7 +107,7 @@ def dist_from_code(code):
     if code == 'beta':
         return Beta2D(2, 4, code=code)
     elif code == 'mult':
-        sigma = 0.05
+        sigma = 0.01
         return TruncatedMultiNormal2D(
             [1/9, 8/9],
             [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
