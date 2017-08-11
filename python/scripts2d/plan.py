@@ -70,6 +70,7 @@ def gen_samples(dist):
             yield fname, n
 
 def main(dist_code, wave_code):
+    print 'Planning %s-%s' % (dist_code, wave_code)
     plans = []
     dist = u.dist_from_code(dist_code)
     for fname, n in gen_samples(dist):
