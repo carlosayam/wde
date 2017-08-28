@@ -23,8 +23,16 @@ def connect(dist_name, wave_name):
         conn = sqlite3.connect(fname_db)
     return conn
 
+def get_ns(dist_code, wave_name):
+    resp = []
+    sql = """select distinct n from results order by n"""
+    with connect(dist_code, wave_name) as conn:
+        for row in exec_gen(conn, sql):
+            resp.append(int(row[0]))
+    return resp
+
 def list_all(dist_code, wave_name):
-    ns = [128,256,512,1024,2048,4096]
+    ns = get_ns(dist_code, wave_name)
     sql = """select case when j0 <= j1 then j1 + 1 else j0 end as j_level, k, count(*), sum(ise), sum(ise * ise)
         from results
         where n = ? and ((j1 >= j0 and j1 >= 2) or (j1 < j0))
@@ -45,9 +53,9 @@ def list_all(dist_code, wave_name):
                     data[n] = dict(mise=mean_p, std_ise=std_p, best=(j_level, k))
                 if k == 1:
                     data_1[(n, j_level)] = mean_p
-    for n in [128,256,512,1024,2048,4096]:
+    for n in ns:
         the_best = data[n]
-        print n, the_best['best'], the_best['mise'], the_best['std_ise'], ('(k=1) %f' % data_1[(n, the_best['best'][0])])
+        print n, the_best['best'], the_best['mise'], the_best['std_ise']
 
 if __name__ == "__main__":
     list_all(sys.argv[1], sys.argv[2])

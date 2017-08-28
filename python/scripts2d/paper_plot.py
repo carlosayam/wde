@@ -19,6 +19,8 @@ import matplotlib as mpl
 from Cheetah.Template import Template
 
 import scripts2d.utils as u
+from wde.estimator import WaveletDensityEstimator
+from wde.simple_estimator import SimpleWaveletDensityEstimator
 
 #
 # -- data source
@@ -26,6 +28,9 @@ import scripts2d.utils as u
 
 def dbname(dist_name, wave_name):
     return 'data/RESP/%s/%s/data-ise.db' % (dist_name, wave_name)
+
+def sample_name(dist_name, wave_name, fname):
+    return 'data/RESP/%s/%s/%s' % (dist_name, wave_name, fname)
 
 def exec_gen(conn, sql, args=()):
     cur = conn.execute(sql, args)
@@ -88,6 +93,68 @@ def generate_true_plots():
         data.append(dict(label=code, fname=fname, caption=title))
     tex_figure(data)
 
+def generate_comparison_plot(label, dist):
+    fname = 'data/plots-tex/comp-%s.eps' % label
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.view_init(elev=0, azim=-45)
+    ax.set_zlim(-2,16)
+    X = np.linspace(0.0,1.0, num=256)
+    Y = np.linspace(0.0,1.0, num=256)
+    XX, YY = np.meshgrid(X, Y)
+    Z = dist.pdf((XX, YY))
+    # see http://mpastell.com/2013/05/02/matplotlib_colormaps/
+    surf = ax.plot_surface(XX, YY, Z, edgecolors='k', linewidth=0.5, cmap=cm.get_cmap('BuGn'))
+    #ax.set_zlim(0, 5)
+    plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+    plt.savefig(fname, pad_inches=0.0, orientation='portrait', frameon=False, bbox_inches='tight')
+    #plt.show()
+    plt.close(fig)
+    return 'comp-%s.pdf' % label
+
+def generate_comparison_plots():
+    sql = """select fname
+        from results
+        where n = ? and k = 1 and j0 = ?
+        order by ise asc
+        limit 1"""
+    dist_code = 'mult'
+    n = 4096
+    waves = (
+        ('db6', 0.314, 'new_wde', 'New estimator'),
+        ('sim-db6', 0.425, 'classic_wde', 'Classic estimator')
+        )
+    dists = []
+    dists.append(dict(
+        label='comp_true',
+        dist=u.dist_from_code(dist_code),
+        title='True density'
+        ))
+    with connect(dist_code, 'db6') as conn:
+        for row in exec_gen(conn, sql, (n, 3)):
+            fname = sample_name(dist_code, 'db6', row[0])
+            data = u.read_sample(fname)
+    print fname, len(data)
+    wde = WaveletDensityEstimator('db6', k = 1, j0 = 3, j1 = 0)
+    wde.fit(data)
+    dists.append(dict(label='new_wde', dist=wde, title='New estimator'))
+    wde = SimpleWaveletDensityEstimator('db6', j0 = 3, j1 = 0)
+    wde.fit(data)
+    dists.append(dict(label='classic_wde', dist=wde, title='Classic'))
+    data = []
+    for dist_desc in dists:
+        fname = generate_comparison_plot(dist_desc['label'], dist_desc['dist'])
+        data.append(dict(label=dist_desc['label'], fname=fname, caption=dist_desc['title']))
+    template = TemplateFile('scripts2d/templates/figures-compare.tex.qtl')
+    data = dict(
+        label='comparison_figures',
+        figures=data,
+        width=0.95/len(data)
+    )
+    return
+    with open('data/plots-tex/comparison-figures.tex', 'w') as fh:
+        fh.write(template.render(data))
+
 #
 # -- generate tables
 #
@@ -114,7 +181,7 @@ def calc_n_data_wave(dist_code, n, wave_name):
 def calc_n_data(dist_code, n):
     data = calc_n_data_wave(dist_code, n, 'db6')
     data_simple = calc_n_data_wave(dist_code, n, 'sim-db6')
-    js = [data[j] for j in sorted(data.keys())[:-1]]
+    js = [data[j] for j in sorted(data.keys())]
     js[0]['first'] = True
     sorted(js, key=lambda v: v['mise'])[0]['best'] = True
     sorted(data_simple.values(), key=lambda v: v['mise'])[0]['best'] = True
@@ -135,7 +202,7 @@ def calc_table_data(dist_code, title):
         title=title,
         ns=ns
     )
-
+    
 def generate_table_mise():
     template = TemplateFile('scripts2d/templates/tables.tex.qtl')
     data = []
@@ -152,16 +219,34 @@ def generate_table_mise():
 #
 #.-- generate contours
 #
-def generate_mise_contours():
-    pass
+def generate_threshold_contours():
+    np.random.seed(1)
+    dist = u.dist_from_code('mix2')
+    data = dist.rvs(1000)
+    dists = []
+    dists.append(dict(
+        label='comp_true',
+        dist=u.dist_from_code(dist_code),
+        title='True density'
+        ))
+    wde = WaveletDensityEstimator('db6', k = 1, j0 = 3, j1 = 0)
+    wde.fit(data)
+    dists.append(dict(label='new_wde', dist=wde, title='New estimator'))
+    wde.fit(data)
+    dists.append(dict(label='classic_wde', dist=wde, title='Classic'))
+    data = []
+    for dist_desc in dists:
+        fname = generate_comparison_plot(dist_desc['label'], dist_desc['dist'])
+    
 
 def generate_other_statistics():
     pass
 
 def generate_all():
-    plt.ioff()
-    generate_true_plots()
+    #plt.ioff()
+    #generate_true_plots()
+    #generate_comparison_plots()
     generate_table_mise()
-    generate_mise_contours()
-    generate_other_statistics()
+    #generate_threshold_contours()
+    #generate_other_statistics()
     print 'Done'

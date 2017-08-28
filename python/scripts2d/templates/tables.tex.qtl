@@ -33,6 +33,6 @@
       \end{tabular}
     \end{minipage}
   #end for
-  \caption{Comparison MISE new estimator vs simple wavelet estimator -FIX-}
+  \caption{Comparison MISE new estimator vs simple wavelet estimator}
   \label{tab:mise}
 \end{table}

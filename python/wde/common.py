@@ -83,15 +83,25 @@ def calculate_nearest_balls(k, xs):
     return np.power(k_near_radious, dim/2.0) * factor
 
 def wave_support_info(wave):
+    resp = {}
     if wave.family_name in ['Daubechies', 'Symlets']:
         phi_support = (0, wave.dec_len - 1)
         psi_support = (1 - wave.dec_len // 2, wave.dec_len // 2)
+        resp['base'] = (phi_support, psi_support)
+        resp['dual'] = (phi_support, psi_support)
     elif wave.family_name in ['Coiflets']:
         phi_support = (1 - wave.dec_len // 2, wave.dec_len // 2)
         psi_support = (1 - wave.dec_len // 2, wave.dec_len // 2)
+        resp['base'] = (phi_support, psi_support)
+        resp['dual'] = (phi_support, psi_support)
+    elif wave.family_name == 'Biorthogonal':
+        phi_support = (1 - wave.dec_len // 2, wave.dec_len // 2)
+        psi_support = (1 - wave.dec_len // 2, wave.dec_len // 2)
+        resp['base'] = (phi_support, psi_support)
+        raise ValueError('wave family %s not known support' % wave.family_name)
     else:
         raise ValueError('wave family %s not known support' % wave.family_name)
-    return phi_support, psi_support
+    return resp
 
 def gridify_xs(j0, j1, xs, minx, maxx):
     grid_xs = {}

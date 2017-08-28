@@ -1,8 +1,10 @@
 %%% computer generated %%%
-\begin{figure}[t!]
+\begin{figure}[!t]
+  \centering
   #for $figure in $figures:
-    \begin{subfigure}[t]{$width\textwidth}
-      \includegraphics[width=\textwidth]{images/$figure.fname}
+    \begin{subfigure}{\linewidth}
+      \centering
+      \includegraphics[width=0.55\linewidth]{images/$figure.fname}
 		  \caption{$figure.caption}
 		  \label{fig:$figure.label}
 	  \end{subfigure}

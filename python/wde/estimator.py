@@ -12,7 +12,7 @@ class WaveletDensityEstimator(object):
         self.k = k
         self.j0 = j0
         self.j1 = j1 if j1 is not None else (j0 - 1)
-        self.phi_support, self.psi_support = wave_support_info(self.wave)
+        self.multi_supports = wave_support_info(self.wave)
         self.pdf = None
         if thresholding is None:
             self.thresholding = lambda n, j, dn, c: c
@@ -23,7 +23,7 @@ class WaveletDensityEstimator(object):
         "Fit estimator to data. xs is a numpy array of dimension n x d, n = samples, d = dimensions"
         self.dim = xs.shape[1]
         self.dimpow = 2 ** self.dim
-        self.calc_wavefuns(self.dim)
+        self.set_wavefuns(self.dim)
         self.minx = np.amin(xs, axis=0)
         self.maxx = np.amax(xs, axis=0)
         self.n = xs.shape[0]
@@ -31,17 +31,24 @@ class WaveletDensityEstimator(object):
         self.pdf = self.calc_pdf()
         return True
 
-    def calc_wavefuns(self, dim):
-        self.wave_funs = {}
-        phi, psi, _ = self.wave.wavefun(level=12)
-        phi = interp1d(np.linspace(*self.phi_support, num=len(phi)), phi, fill_value=0.0, bounds_error=False)
-        psi = interp1d(np.linspace(*self.psi_support, num=len(psi)), psi, fill_value=0.0, bounds_error=False)
+    def set_wavefuns(self, dim):
+        self.wave_funs = self.calc_wavefuns(dim, self.multi_supports['base'], self.wave)
+        self.dual_wave_funs = self.calc_wavefuns(dim, self.multi_supports['dual'], self.wave)
+
+    @staticmethod
+    def calc_wavefuns(dim, supports, wave):
+        resp = {}
+        phi_support, psi_support = supports
+        phi, psi, _ = wave.wavefun(level=12)
+        phi = interp1d(np.linspace(*phi_support, num=len(phi)), phi, fill_value=0.0, bounds_error=False)
+        psi = interp1d(np.linspace(*psi_support, num=len(psi)), psi, fill_value=0.0, bounds_error=False)
         for wave_x, qx in all_qx(dim):
             f = partial(wave_tensor, qx, phi, psi)
             f.qx = qx
-            f.support = support_tensor(qx, self.phi_support, self.psi_support)
-            f.suppf = partial(suppf_tensor, qx, self.phi_support, self.psi_support)
-            self.wave_funs[tuple(qx)] = f
+            f.support = support_tensor(qx, phi_support, psi_support)
+            f.suppf = partial(suppf_tensor, qx, phi_support, psi_support)
+            resp[tuple(qx)] = f
+        return resp
 
     def calc_coefficients(self, xs):
         #grid_xs = gridify_xs(self.j0, self.j1, xs, self.minx, self.maxx)
@@ -52,17 +59,15 @@ class WaveletDensityEstimator(object):
         self.coeffs = {}
         self.nums = {}
         qxs = list(all_qx(self.dim))
-        norm_const = self.do_calculate_j(self.j0, qxs[0:1], xs, xs_balls)
+        self.do_calculate_j(self.j0, qxs[0:1], xs, xs_balls)
         for j in range(self.j0, self.j1 + 1):
-            norm_const += self.do_calculate_j(j, qxs[1:], xs, xs_balls)
-        self.norm_const = norm_const
+            self.do_calculate_j(j, qxs[1:], xs, xs_balls)
 
     def do_calculate_j(self, j, qxs, xs, xs_balls):
         jpow2 = 2 ** j
         if j not in self.coeffs:
             self.coeffs[j] = {}
             self.nums[j] = {}
-        norm_j = 0.0
         for ix, qx in qxs:
             wavef = self.wave_funs[qx]
             zs_min, zs_max = zs_range(wavef, self.minx, self.maxx, j)
@@ -73,8 +78,6 @@ class WaveletDensityEstimator(object):
                 self.nums[j][qx][zs] = num
                 v = calc_coeff(wavef, jpow2, zs, xs, xs_balls)
                 self.coeffs[j][qx][zs] = v
-                norm_j += v * v
-        return norm_j
 
     def get_betas(self, j):
         return [coeff for ix, qx in list(all_qx(self.dim))[1:] for coeff in self.coeffs[j][qx].values()]
@@ -88,18 +91,21 @@ class WaveletDensityEstimator(object):
     def calc_pdf(self):
         def pdffun_j(coords, xs_sum, j, qxs, threshold):
             jpow2 = 2 ** j
+            norm_j = 0.0
             for ix, qx in qxs:
-                wavef = self.wave_funs[qx]
+                wavef = self.dual_wave_funs[qx]
                 for zs, coeff in self.coeffs[j][qx].iteritems():
                     num = self.nums[j][qx][zs]
                     coeff_t = self.thresholding(self.n, j - self.j0, num, coeff) if threshold else coeff
+                    norm_j += coeff_t * coeff_t
                     vals = coeff_t * wavef(jpow2, zs, coords)
                     xs_sum += vals
+            return norm_j
         def pdffun(coords):
             xs_sum = np.zeros(coords[0].shape, dtype=np.float64)
             qxs = list(all_qx(self.dim))
-            pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
+            norm_const = pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):
-                pdffun_j(coords, xs_sum, j, qxs[1:], True)
-            return (xs_sum * xs_sum)/self.norm_const
+                norm_const += pdffun_j(coords, xs_sum, j, qxs[1:], True)
+            return (xs_sum * xs_sum)/norm_const
         return pdffun
