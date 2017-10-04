@@ -32,14 +32,21 @@ class WaveletDensityEstimator(object):
         return True
 
     def set_wavefuns(self, dim):
-        self.wave_funs = self.calc_wavefuns(dim, self.multi_supports['base'], self.wave)
-        self.dual_wave_funs = self.calc_wavefuns(dim, self.multi_supports['dual'], self.wave)
+        self.wave_funs = self.calc_wavefuns(dim, 'base', self.multi_supports, self.wave)
+        self.dual_wave_funs = self.calc_wavefuns(dim, 'dual', self.multi_supports, self.wave)
 
     @staticmethod
-    def calc_wavefuns(dim, supports, wave):
+    def calc_wavefuns(dim, which, supports, wave):
         resp = {}
-        phi_support, psi_support = supports
-        phi, psi, _ = wave.wavefun(level=12)
+        phi_support, psi_support = supports[which]
+        defs = wave.wavefun(level=12)
+        if len(defs) == 5:
+            if which == 'base':
+                phi, psi = defs[0], defs[1]
+            else:
+                phi, psi = defs[2], defs[3]
+        else:
+            phi, psi = defs[0], defs[1]
         phi = interp1d(np.linspace(*phi_support, num=len(phi)), phi, fill_value=0.0, bounds_error=False)
         psi = interp1d(np.linspace(*psi_support, num=len(psi)), psi, fill_value=0.0, bounds_error=False)
         for wave_x, qx in all_qx(dim):

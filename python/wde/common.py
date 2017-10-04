@@ -95,10 +95,13 @@ def wave_support_info(wave):
         resp['base'] = (phi_support, psi_support)
         resp['dual'] = (phi_support, psi_support)
     elif wave.family_name == 'Biorthogonal':
-        phi_support = (1 - wave.dec_len // 2, wave.dec_len // 2)
-        psi_support = (1 - wave.dec_len // 2, wave.dec_len // 2)
+        # bior4.4 ??
+        phi_support = (-5, 5)
+        psi_support = (-4, 5)
         resp['base'] = (phi_support, psi_support)
-        raise ValueError('wave family %s not known support' % wave.family_name)
+        phi_support = (-4, 4)
+        psi_support = (-4, 5)
+        resp['dual'] = (phi_support, psi_support)
     else:
         raise ValueError('wave family %s not known support' % wave.family_name)
     return resp
