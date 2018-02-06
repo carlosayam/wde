@@ -1,4 +1,3 @@
-from __future__ import division
 import pywt
 import numpy as np
 import itertools as itt
@@ -85,7 +84,7 @@ class SimpleWaveletDensityEstimator(object):
             jpow2 = 2 ** j
             for ix, qx in qxs:
                 wavef = self.dual_wave_funs[qx]
-                for zs, coeff in self.coeffs[j][qx].iteritems():
+                for zs, coeff in self.coeffs[j][qx].items():
                     num = self.nums[j][qx][zs]
                     coeff_t = self.thresholding(self.n, j - self.j0, num, coeff) if threshold else coeff
                     vals = coeff_t * wavef(jpow2, zs, coords)
@@ -97,4 +96,5 @@ class SimpleWaveletDensityEstimator(object):
             for j in range(self.j0, self.j1 + 1):
                 pdffun_j(coords, xs_sum, j, qxs[1:], True)
             return xs_sum
+        pdffun.__dict__['dim'] = self.dim
         return pdffun

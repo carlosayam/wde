@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-from __future__ import division
 
 import datetime
 import os
 import sys
-import pandas
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/..')
 
@@ -33,7 +31,8 @@ def exec_plan(fh_ise, row):
     wde.fit(data)
     elapsed_time = (datetime.datetime.now() - t0).total_seconds()
     ise = u.calc_ise(wde.pdf, pdf_vals)
-    u.write_ise(fh_ise, fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time)
+    hd = u.calc_hellinger(wde.pdf, pdf_vals)
+    u.write_ise(fh_ise, fname, dist_code, wave_code, n, j0, j1, k, ise, hd, elapsed_time)
 
 def main():
     start_time = datetime.datetime.now()
@@ -42,12 +41,12 @@ def main():
     plans = u.read_plans(bag_size, bag_number)
     with open("data2d/ise-%04d.csv" % bag_number, "w") as fh_ise:
         if bag_number == 1:
-            headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, elapsed_time\n'
+            headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, hd, elapsed_time\n'
             fh_ise.write(headers)
         for _, row in plans.iterrows():
             exec_plan(fh_ise, row)
     end_time = datetime.datetime.now()
-    print 'Run %d took %f seconds' % (bag_number, (end_time - start_time).total_seconds())
+    print('Run %d took %f seconds' % (bag_number, (end_time - start_time).total_seconds()))
 
 
 if __name__ == "__main__":

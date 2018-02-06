@@ -34,9 +34,9 @@ class AllTests(TestCase):
         grid = gridify_xs(0,2,xs,minx,maxx)
         self.assertTrue((0,0) in grid[0])
         self.assertEquals(4, len(grid[0][(0,0)][0]))
-        for zs, where_xs in grid[1].iteritems():
+        for zs, where_xs in grid[1].items():
             self.assertEquals(1, len(where_xs[0]))
-        for zs, where_xs in grid[2].iteritems():
+        for zs, where_xs in grid[2].items():
             for x in xs[where_xs]:
                 self.assertEqual(zs, ints(4 * x))
 

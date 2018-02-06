@@ -1,0 +1,5 @@
+PyWavelets
+numpy>=1.12
+scikit-learn>=0.19
+pandas>=0.20
+scipy

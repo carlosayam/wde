@@ -1,12 +1,8 @@
-from __future__ import division
-import pywt
 import math
 import numpy as np
 import itertools as itt
 from sklearn.neighbors import BallTree
-from scipy.interpolate import interp1d
 from scipy.special import gamma
-from functools import partial
 
 def np_mult(cols):
     if len(cols) == 1:
@@ -18,7 +14,7 @@ def np_mult(cols):
 
 # all possible combinations of {0,1}, i.e. {0,1}^dim
 def all_qx(dim):
-    for wave_x, qx in enumerate(itt.product(xrange(2), repeat=dim)):
+    for wave_x, qx in enumerate(itt.product(range(2), repeat=dim)):
         yield wave_x, tuple(qx)
 
 def support_tensor(qx, phi_supp, psi_supp):
@@ -29,7 +25,7 @@ def support_tensor(qx, phi_supp, psi_supp):
 # all z-min, z-max ranges as tensor of ranges for phi and psi support
 def all_zs_tensor(zs_min, zs_max):
     it = zip(zs_min, zs_max)
-    return [xrange(int(a), int(b)+1) for a, b in it]
+    return [range(int(a), int(b)+1) for a, b in it]
 
 # tensor product of z-min per dimension
 def z0_tensor(qx, zs_phi, zs_psi):
@@ -44,7 +40,7 @@ def z1_tensor(qx, zs_phi, zs_psi):
 # zs = dim
 def wave_tensor(qx, phi, psi, jpow, zs, xs):
     cols = []
-    if type(xs) == tuple:
+    if type(xs) == tuple or type(xs) == list:
         proj = lambda xs,i: xs[i]
     else:
         proj = lambda xs,i: xs[:,i]
@@ -56,7 +52,7 @@ def wave_tensor(qx, phi, psi, jpow, zs, xs):
 
 def suppf_tensor(qx, phi_sup, psi_sup, jpow, zs, xs):
     cols = []
-    if type(xs) == tuple:
+    if type(xs) == tuple or type(xs) == list:
         proj = lambda xs,i: xs[i]
     else:
         proj = lambda xs,i: xs[:,i]
@@ -113,12 +109,12 @@ def gridify_xs(j0, j1, xs, minx, maxx):
         jpow = 2 ** j
         grid_xs[j] = {}
         if j == j0:
-            iters = [xrange(int(jpow * minx[d]), int(jpow * maxx[d]) + 1) for d in range(dim)]
+            iters = [range(int(jpow * minx[d]), int(jpow * maxx[d]) + 1) for d in range(dim)]
             for zs in itt.product(*iters):
                 cond = (np.floor(jpow * xs) == zs).all(axis=1)
                 grid_xs[j][zs] = np.where(cond)
         else:
-            for zs_up, where_xs in grid_xs[j-1].iteritems():
+            for zs_up, where_xs in grid_xs[j-1].items():
                 # TODO theory - one could stop splitting for len <= N0, what does this mean?
                 if len(where_xs[0]) == 0:
                     continue

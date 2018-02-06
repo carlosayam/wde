@@ -1,10 +1,10 @@
-from __future__ import division
 import pywt
 import numpy as np
 import itertools as itt
 from scipy.interpolate import interp1d
 from functools import partial
-from .common import *
+from .common import wave_support_info, all_qx, wave_tensor, support_tensor, suppf_tensor, calculate_nearest_balls, \
+    zs_range, all_zs_tensor, calc_num, calc_coeff
 
 class WaveletDensityEstimator(object):
     def __init__(self, wave_name, k=1, j0=1, j1=None, thresholding=None):
@@ -101,7 +101,7 @@ class WaveletDensityEstimator(object):
             norm_j = 0.0
             for ix, qx in qxs:
                 wavef = self.dual_wave_funs[qx]
-                for zs, coeff in self.coeffs[j][qx].iteritems():
+                for zs, coeff in self.coeffs[j][qx].items():
                     num = self.nums[j][qx][zs]
                     coeff_t = self.thresholding(self.n, j - self.j0, num, coeff) if threshold else coeff
                     norm_j += coeff_t * coeff_t
@@ -115,4 +115,5 @@ class WaveletDensityEstimator(object):
             for j in range(self.j0, self.j1 + 1):
                 norm_const += pdffun_j(coords, xs_sum, j, qxs[1:], True)
             return (xs_sum * xs_sum)/norm_const
+        pdffun.__dict__['dim'] = self.dim
         return pdffun
