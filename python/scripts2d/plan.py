@@ -86,7 +86,7 @@ def main(dist_code, wave_code):
     u.write_plans(plans)
     u.write_dist_pdf(u.dist_from_code(dist_code))
     write_pbs(dist_code, wave_code, len(plans))
-    print('Done %d' % len(plans))
+    print('Done %s, %s = %d' % (dist_code, wave_code, len(plans)))
 
 if __name__ == "__main__":
     main(sys.argv[1], sys.argv[2])
