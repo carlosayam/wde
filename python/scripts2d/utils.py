@@ -72,7 +72,7 @@ def dist_from_code(code):
             [np.array([0.2, 0.3]), np.array([0.7, 0.7])],
             [np.array([[sigma/6, 0], [0, sigma/6]]), np.array([[0.015, sigma/64], [sigma/64, 0.015]])],
             code=code
-            )
+        )
     elif code == 'mul3':
         sigma = 0.01
         return TruncatedMultiNormalD(
@@ -186,7 +186,7 @@ def calc_ise(pred_pdf, pdf_vals):
     err = (diff * diff).sum()
     # extreme values are zero, which do not contribute to integral, hence correction
     # in size "_ - 1".
-    nns = reduce(lambda x, y: (x-1) * (y-1), pred_Z.shape)
+    nns = reduce(lambda x, y: (x - 1) * (y - 1), pred_Z.shape)
     return err / nns
 
 def calc_hellinger(pred_pdf, pdf_vals):

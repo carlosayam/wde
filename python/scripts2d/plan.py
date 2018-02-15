@@ -33,27 +33,28 @@ PBS="""
 #PBS -N ARRAY
 #PBS -l nodes=1:ppn=1
 #PBS -l vmem=2gb
-#PBS -l walltime=5:30:00
+#PBS -l walltime=%(wall_time)s
 #PBS -j oe
 
 #PBS -t 1-%%d
 
 module purge
-module add python/2.7.12
+module add python/3.5.2
 
-RESP_DIR="$PBS_O_HOME/RESP/%s/%s"
+RESP_DIR="$PBS_O_HOME/RESP/%(dist_code)s/%(wave_code)s"
 SW_DIR="$PBS_O_HOME/WDE/wde/python"
 
 mkdir -p $RESP_DIR
 cd $RESP_DIR
 
 . $SW_DIR/wdeenv/bin/activate
-$SW_DIR/scripts2d/run_for.py %d $PBS_ARRAYID
+$SW_DIR/scripts2d/run_for.py %(bag_size)d $PBS_ARRAYID
 """[1:]
 
 def write_pbs(dist_code, wave_code, num):
     fname = 'data2d/run.pbs'
-    pbs = PBS % (dist_code, wave_code, BAG_SIZE)
+    wall_time = '20:00:00' if dist_code == 'mul3' else '00:30:00'
+    pbs = PBS % dict(wall_time=wall_time, dist_code=dist_code, wave_code=wave_code, bag_size=BAG_SIZE)
     with open(fname, 'w') as f:
         f.write(pbs % (num // BAG_SIZE + 1))
 
