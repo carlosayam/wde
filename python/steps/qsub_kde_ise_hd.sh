@@ -26,8 +26,9 @@ for start in ${START[*]}; do
     module add python/3.5.2
 
     SW_DIR="$PBS_O_HOME/WDE/wde/python"
-
-    $SW_DIR/steps/kde_ise_hd.py $DIST $NUM $start $BLOCK
+    . $SW_DIR/wdeenv3/bin/activate
+    cd $SW_DIR
+    python steps/kde_ise_hd.py $DIST $NUM $start $BLOCK
 EOF
 
     qsub tmp.pbs
