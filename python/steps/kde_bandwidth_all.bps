@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#PBS -N PLAN
+#PBS -l nodes=1:ppn=1
+#PBS -l vmem=4gb
+#PBS -l walltime=4:00:00
+#PBS -j oe
+#PBS -M z3403159@student.unsw.edu.au
+#PBS -m ae
+
+module purge
+module add python/3.5.2
+
+SW_DIR="$PBS_O_HOME/WDE/wde/python"
+
+mkdir -p $RESP_DIR
+cd $RESP_DIR
+
+. $SW_DIR/wdeenv3/bin/activate
+for $DIST in mult mix2 mix3 mul3; do
+  for $NUM in 128 256 512 1024 2048 4096; do
+    $SW_DIR/steps/kde_bandwidth.py $DIST $NUM
+  done
+done
+
