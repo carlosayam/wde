@@ -76,7 +76,6 @@ def main(dist_code, sample_size, start, block_size):
     """
     bw_fname = bandwidth_fname(dist_code, sample_size)
     bw = np.load(bw_fname, allow_pickle=False)
-    print(bw)
     ## read pdf vals for dist_code
     true_pdf = read_true_pdf(dist_code)
     with KDEIseWriter(dist_code, sample_size, start, block_size) as writer:
