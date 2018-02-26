@@ -96,6 +96,8 @@ def main(dist_code, sample_size, start, block_size):
     dim, true_pdf = calc_true_pdf(dist_code)
     with KDEIseWriter(dist_code, sample_size, start, block_size) as writer:
         for i in range(start, start + block_size):
+            if i >= 500:
+                continue
             fname = sample_fname(dist_code, sample_size, i)
             sample = np.genfromtxt(fname, delimiter=',')
             t0 = datetime.now()
