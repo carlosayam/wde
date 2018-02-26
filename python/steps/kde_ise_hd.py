@@ -14,24 +14,33 @@ from functools import reduce
 from datetime import datetime
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 from steps.common import sample_fname, bandwidth_fname, ise_hd_fname, read_true_pdf
-from scripts2d.utils import mise_mesh
+from scripts2d.utils import mise_mesh, dist_from_code
 
-def calc_kde_ise_hd(kde, true_pdf):
-    def l2_norm(v1_lin, v2_grid):
-        v1_lin = v1_lin.reshape(v2_grid.shape)
-        diff = v1_lin - v2_grid
+def grid_points(dim):
+    grid_n = 256 if dim == 2 else 64
+    points = np.mgrid.__getitem__(tuple([slice(0.0, 1.0,  grid_n * 1j) for num in range(dim)])).reshape(dim, -1).T
+    return points
+
+
+def calc_true_pdf(dist_code):
+    dist = dist_from_code(dist_code)
+    grid_n = 256 if dist.dim == 2 else 64
+    points = grid_points(dist.dim)
+    return dist.dim, dist.pdf(points)
+
+
+def calc_kde_ise_hd(dim, kde, true_pdf):
+    def l2_norm(v1_lin, v2_lin):
+        diff = v1_lin - v2_lin
         # Ok, because we know domain [0,1]x[0,1] => area = 1 x 1 = 1
         err = (diff * diff).sum()
         # extreme values are zero, which do not contribute to integral, hence correction
         # in size "_ - 1".
         return err/nns
 
-    nns = reduce(lambda x, y: (x - 1) * (y - 1), true_pdf.shape)
-    d = len(true_pdf.shape)
-    # reflection to emulate [0.0:1.0:(num)j, ... as many dimensions as required, then
-    # generate a nxd matrix which can be used in kde.pdf(_)
-    points = np.mgrid.__getitem__(tuple([slice(0.0, 1.0, num * 1j) for num in true_pdf.shape])).reshape(d, -1).T
+    points = grid_points(dim)
     pred_xy = kde.pdf(points)
+    nns = points.shape[0]
     ise = l2_norm(pred_xy, true_pdf)
     hd = l2_norm(np.sqrt(pred_xy), np.sqrt(true_pdf))
     return ise, hd
@@ -42,10 +51,11 @@ class KDEIseWriter(object):
         self.fname = ise_hd_fname(dist_code, sample_size, start, block_size)
         self.fh = None
         self.t0 = datetime.now()
+        self.num = block_size
         print('KDEIseWriter: Generating %s' % self.fname)
 
     def __enter__(self):
-        self.fh = open(self.fname, 'w')
+        self.fh = open(self.fname, 'w', 1)
         headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, hd, elapsed_time\n'
         self.fh.write(headers)
         return self
@@ -55,14 +65,19 @@ class KDEIseWriter(object):
             elapsed_time = (datetime.now() - self.t0).total_seconds()
             print('KDEIseWriter: Finished in %f secs' % elapsed_time)
             self.fh.close()
+        if exc_type is not None:
+            if self.num <= 0:
+                ## block exception, we have done all
+                return True
 
     def write_ise(self, fname, dist_code, n, ise, hd, elapsed_time):
         wave_code = 'kde'
         j0 = j1 = k = 0
         new_entry = '"%s", "%s", "%s", %d, %d, %d, %d, %f, %f, %f\n' % (
         fname, dist_code, wave_code, n, j0, j1, k, ise, hd, elapsed_time)
-        ## print(new_entry)
+        #print(new_entry)
         self.fh.write(new_entry)
+        self.num -= 1
 
 
 def main(dist_code, sample_size, start, block_size):
@@ -76,8 +91,9 @@ def main(dist_code, sample_size, start, block_size):
     """
     bw_fname = bandwidth_fname(dist_code, sample_size)
     bw = np.load(bw_fname, allow_pickle=False)
+    print('Bandwidth', bw)
     ## read pdf vals for dist_code
-    true_pdf = read_true_pdf(dist_code)
+    dim, true_pdf = calc_true_pdf(dist_code)
     with KDEIseWriter(dist_code, sample_size, start, block_size) as writer:
         for i in range(start, start + block_size):
             fname = sample_fname(dist_code, sample_size, i)
@@ -85,7 +101,7 @@ def main(dist_code, sample_size, start, block_size):
             t0 = datetime.now()
             kde = KDEMultivariate(sample, 'c' * sample.shape[1], bw=bw)
             elapsed_time = (datetime.now() - t0).total_seconds()
-            ise, hd = calc_kde_ise_hd(kde, true_pdf)
+            ise, hd = calc_kde_ise_hd(dim, kde, true_pdf)
             writer.write_ise(fname, dist_code, sample_size, ise, hd, elapsed_time)
 
 if __name__ == "__main__":

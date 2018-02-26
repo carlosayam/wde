@@ -9,7 +9,11 @@ else:
 
 def ensure_dir(directory):
     if not os.path.exists(directory):
-        os.makedirs(directory)
+        try:
+            os.makedirs(directory)
+        except FileExistsError as ex:
+            # ignore race condition between multiple jobs
+            pass
 
 def parent_dir(code):
     return '%(home)s/STEPS/%(dist_code)s/' % dict(home=PBS_O_HOME, dist_code=code)
@@ -31,7 +35,7 @@ def bandwidth_fname(code, sample_size):
 def ise_hd_fname(dist_code, sample_size, start, block_size):
     pdir = parent_dir(dist_code)
     ensure_dir('%(pdir)s/kde_ise_hd/%(num)05d/' % dict(pdir=pdir, num=sample_size))
-    return '%(pdir)s/kde_ise_hd/%(num)05d/ise-%(start)03d-%(block_size)03d.csv' % dict(
+    return '%(pdir)s/kde_ise_hd/%(num)05d/kde-%(block_size)03d-%(start)03d.csv' % dict(
         pdir=pdir, num=sample_size, start=start, block_size=block_size)
 
 def read_true_pdf(code):
