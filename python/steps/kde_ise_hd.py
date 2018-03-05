@@ -13,7 +13,7 @@ import numpy as np
 from functools import reduce
 from datetime import datetime
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
-from steps.common import sample_fname, bandwidth_fname, ise_hd_fname, read_true_pdf
+from steps.common import sample_fname, bandwidth_fname, ise_hd_fname, Adder
 from scripts2d.utils import mise_mesh, dist_from_code
 
 def grid_points(dim):
@@ -47,23 +47,31 @@ def calc_kde_ise_hd(dim, kde, true_pdf):
 
 
 class KDEIseWriter(object):
-    def __init__(self, dist_code, sample_size, start, block_size):
-        self.fname = ise_hd_fname(dist_code, sample_size, start, block_size)
+    def __init__(self, dist_code, sample_size, start, block_size, symmetric, dry=False):
+        self.fname = ise_hd_fname(dist_code, sample_size, start, block_size, symmetric)
         self.fh = None
         self.t0 = datetime.now()
         self.num = block_size
+        self.start = start
+        # quick average
+        self.dry = dry
+        self.ise_adder = Adder('ISE')
+        self.hd_adder = Adder('HD')
+        self.etime_adder = Adder('E.TIME')
         print('KDEIseWriter: Generating %s' % self.fname)
 
     def __enter__(self):
-        self.fh = open(self.fname, 'w', 1)
-        headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, hd, elapsed_time\n'
-        self.fh.write(headers)
+        self.fh = open(self.fname, 'w', 1) if not self.dry else None
+        if self.start == 0 and not self.dry:
+            headers = 'fname, dist_code, wave_code, n, j0, j1, k, ise, hd, elapsed_time\n'
+            self.fh.write(headers)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        elapsed_time = (datetime.now() - self.t0).total_seconds()
+        print('KDEIseWriter: Finished in %f secs' % elapsed_time)
+        print('Stats: ', self.ise_adder, self.hd_adder, self.etime_adder)
         if self.fh is not None:
-            elapsed_time = (datetime.now() - self.t0).total_seconds()
-            print('KDEIseWriter: Finished in %f secs' % elapsed_time)
             self.fh.close()
         if exc_type is not None:
             if self.num <= 0:
@@ -76,25 +84,32 @@ class KDEIseWriter(object):
         new_entry = '"%s", "%s", "%s", %d, %d, %d, %d, %f, %f, %f\n' % (
         fname, dist_code, wave_code, n, j0, j1, k, ise, hd, elapsed_time)
         #print(new_entry)
-        self.fh.write(new_entry)
+        if not self.dry:
+            self.fh.write(new_entry)
+        self.ise_adder.add_v(ise)
+        self.hd_adder.add_v(hd)
+        self.etime_adder.add_v(elapsed_time)
         self.num -= 1
 
 
-def main(dist_code, sample_size, start, block_size):
+def main(dist_code, sample_size, start, block_size, symmetric):
     """
     calculate ISE and HD for certain samples
     :param dist_code: distribution code from utils
     :param sample_size: one of the sample sizes available
     :param start: first sample to process (starts at 0)
     :param block_size: num samples to do
+    :param symmetric: use same bandwidth in all dimensions
     :return: None
     """
     bw_fname = bandwidth_fname(dist_code, sample_size)
     bw = np.load(bw_fname, allow_pickle=False)
-    print('Bandwidth', bw)
+    if symmetric:
+        bw = np.ones(bw.shape[0]) * np.mean(bw)
+    print('Bandwidth', bw, '- Symmetric', symmetric)
     ## read pdf vals for dist_code
     dim, true_pdf = calc_true_pdf(dist_code)
-    with KDEIseWriter(dist_code, sample_size, start, block_size) as writer:
+    with KDEIseWriter(dist_code, sample_size, start, block_size, symmetric, dry=True) as writer:
         for i in range(start, start + block_size):
             if i >= 500:
                 continue
@@ -112,6 +127,7 @@ if __name__ == "__main__":
     parser.add_argument('n', help='sample size', type=int)
     parser.add_argument('start', help='Start sample (0 based)', type=int)
     parser.add_argument('block_size', help='Num samples to do', type=int)
+    parser.add_argument('--symmetric', help='same bandwidth all directions', action='store_true')
     args = parser.parse_args()
 
-    main(args.code, args.n, args.start, args.block_size)
+    main(args.code, args.n, args.start, args.block_size, args.symmetric)

@@ -7,6 +7,7 @@
 #
 
 import argparse
+from datetime import datetime
 import numpy as np
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 from steps.common import sample_fname, bandwidth_fname
@@ -15,6 +16,7 @@ def main(code, sample_size):
     ## calculate average bw for <num> samples
     bw = None
     num = 10
+    t0 = datetime.now()
     for i in range(num):
         fname = sample_fname(code, sample_size, i)
         sample = np.genfromtxt(fname, delimiter=',')
@@ -23,9 +25,12 @@ def main(code, sample_size):
             bw = kde.bw
         else:
             bw += kde.bw
+        print('.', end='')
     bw_fname = bandwidth_fname(code, sample_size)
     bw = bw / num # average
     np.save(bw_fname, bw, allow_pickle=False)
+    elapsed_time = (datetime.now() - t0).total_seconds()
+    print('\nDone kde_bandwidth %s, %s in %f' % (code, sample_size, elapsed_time))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="kde bandwidth calculator")
