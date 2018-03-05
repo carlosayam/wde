@@ -106,10 +106,15 @@ class WaveletDensityEstimator(object):
                     coeff_t = self.thresholding(self.n, j - self.j0, num, coeff) if threshold else coeff
                     norm_j += coeff_t * coeff_t
                     vals = coeff_t * wavef(jpow2, zs, coords)
+                    #print('xs_sum', xs_sum.shape)
+                    #print('vals', vals.shape)
                     xs_sum += vals
             return norm_j
         def pdffun(coords):
-            xs_sum = np.zeros(coords[0].shape, dtype=np.float64)
+            if type(coords) == tuple or type(coords) == list:
+                xs_sum = np.zeros(coords[0].shape, dtype=np.float64)
+            else:
+                xs_sum = np.zeros(coords.shape[0], dtype=np.float64)
             qxs = list(all_qx(self.dim))
             norm_const = pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):

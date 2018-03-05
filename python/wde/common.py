@@ -78,6 +78,14 @@ def calculate_nearest_balls(k, xs):
     factor = calc_factor(xs.shape[0], dim, k)
     return np.power(k_near_radious, dim/2.0) * factor
 
+def calculate_nearest_weights(f, xs):
+    dim = xs.shape[1]
+    n = xs.shape[0]
+    ball_tree = BallTree(xs)
+    counts = ball_tree.query_count(xs, f * n)
+    return np.power(counts, 0.5) * n
+
+
 def wave_support_info(wave):
     resp = {}
     if wave.family_name in ['Daubechies', 'Symlets']:
