@@ -34,10 +34,10 @@ def calc_class_ise_hd(dim, wde, true_pdf):
         return err/nns
 
     points = grid_points(dim)
-    pred_xy = wde.pdf(points)
+    pred_xy = wde.pdf(points).clip(min=0)
     nns = points.shape[0]
     ise = l2_norm(pred_xy, true_pdf)
-    hd = l2_norm(np.sqrt(pred_xy.clip(min=0)), np.sqrt(true_pdf))
+    hd = l2_norm(np.sqrt(pred_xy), np.sqrt(true_pdf))
     return ise, hd
 
 def class_ise_hd_fname(dist_code, wave, j0, j1, sample_size, start, block_size):
