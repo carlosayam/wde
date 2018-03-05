@@ -65,5 +65,7 @@ def read_true_pdf(code):
     return np.load(true_pdf_fname(code))
 
 
-
-
+def grid_points(dim):
+    grid_n = 256 if dim == 2 else 35
+    points = np.mgrid.__getitem__(tuple([slice(0.0, 1.0,  grid_n * 1j) for num in range(dim)])).reshape(dim, -1).T
+    return points

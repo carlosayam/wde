@@ -90,7 +90,10 @@ class SimpleWaveletDensityEstimator(object):
                     vals = coeff_t * wavef(jpow2, zs, coords)
                     xs_sum += vals
         def pdffun(coords):
-            xs_sum = np.zeros(coords[0].shape, dtype=np.float64)
+            if type(coords) == tuple or type(coords) == list:
+                xs_sum = np.zeros(coords[0].shape, dtype=np.float64)
+            else:
+                xs_sum = np.zeros(coords.shape[0], dtype=np.float64)
             qxs = list(all_qx(self.dim))
             pdffun_j(coords, xs_sum, self.j0, qxs[0:1], False)
             for j in range(self.j0, self.j1 + 1):

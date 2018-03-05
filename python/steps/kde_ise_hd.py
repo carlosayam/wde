@@ -13,18 +13,12 @@ import numpy as np
 from functools import reduce
 from datetime import datetime
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
-from steps.common import sample_fname, bandwidth_fname, ise_hd_fname, Adder
+from steps.common import sample_fname, bandwidth_fname, ise_hd_fname, Adder, grid_points
 from scripts2d.utils import mise_mesh, dist_from_code
-
-def grid_points(dim):
-    grid_n = 256 if dim == 2 else 64
-    points = np.mgrid.__getitem__(tuple([slice(0.0, 1.0,  grid_n * 1j) for num in range(dim)])).reshape(dim, -1).T
-    return points
 
 
 def calc_true_pdf(dist_code):
     dist = dist_from_code(dist_code)
-    grid_n = 256 if dist.dim == 2 else 64
     points = grid_points(dist.dim)
     return dist.dim, dist.pdf(points)
 
