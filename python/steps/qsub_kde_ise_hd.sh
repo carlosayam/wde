@@ -23,8 +23,7 @@ else
 fi
 
 for start in ${START[*]}; do
-    fname=tmp-$DIST-$NUM-$start.pbs
-    cat << EOF > $fname
+    cat << EOF | qsub -
 #PBS -N KDE_${DIST}_${NUM}_$start
 #PBS -l nodes=1:ppn=1
 #PBS -l vmem=4gb
@@ -42,8 +41,5 @@ cd \$SW_DIR
 export PYTHONPATH=.
 python steps/kde_ise_hd.py $DIST $NUM $start $BLOCK
 EOF
-
-    qsub $fname
     echo "SUBMITTED steps/kde_ise_hd.py $DIST $NUM $start $BLOCK"
-    sleep 5
 done
