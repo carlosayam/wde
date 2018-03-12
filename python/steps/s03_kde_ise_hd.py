@@ -13,14 +13,7 @@ import numpy as np
 from functools import reduce
 from datetime import datetime
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
-from steps.common import sample_fname, bandwidth_fname, ise_hd_fname, Adder, grid_points
-from scripts2d.utils import mise_mesh, dist_from_code
-
-
-def calc_true_pdf(dist_code):
-    dist = dist_from_code(dist_code)
-    points = grid_points(dist.dim)
-    return dist.dim, dist.pdf(points)
+from steps.common import sample_fname, bandwidth_fname, ise_hd_fname, Adder, grid_points, calc_true_pdf
 
 
 def calc_kde_ise_hd(dim, kde, true_pdf):
@@ -103,7 +96,7 @@ def main(dist_code, sample_size, start, block_size, symmetric):
     print('Bandwidth', bw, '- Symmetric', symmetric)
     ## read pdf vals for dist_code
     dim, true_pdf = calc_true_pdf(dist_code)
-    with KDEIseWriter(dist_code, sample_size, start, block_size, symmetric, dry=True) as writer:
+    with KDEIseWriter(dist_code, sample_size, start, block_size, symmetric) as writer:
         for i in range(start, start + block_size):
             if i >= 500:
                 continue

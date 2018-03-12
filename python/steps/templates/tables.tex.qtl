@@ -1,31 +1,38 @@
-%%% computer generated %%%
 \begin{table}[ht!]
+  \fontsize{5}{6}\selectfont
   \centering
   #for $tabdata in $data:
     \begin{minipage}[t]{$width\textwidth}
       \centering
       \textbf{$tabdata.title} \\
       \vspace{6pt}
-      \begin{tabular}{|l|l|r|r|}
+      \begin{tabular}{|r|r|r|r|r|}
         \hline
-        \textbf{n} & \textbf{J} & \textbf{WDE} & \textbf{Simple} \\
+        \textbf{n} & \textbf{J+1} & \textbf{SP} & \textbf{Class.} & \textbf{KDE} \\
         #for $data_n in $tabdata.ns:
           #for $data_j in $data_n.js:
             #if $data_j.first:
               \hline
               \multirow{$data_n.len_js}{*}{$data_n.n}
-            #else
-              \cline{2-4}
             #end if
             #if $data_j.best:
-              & \textbf{$data_j.j} & \textbf{$data_j.mise}
+              & \textbf{$data_j.j} &
+              #if $data_j.tick:
+                \checkmark
+              #end if
+              \textbf{$data_j.mise}
             #else
               & $data_j.j & $data_j.mise
             #end if
             #if $data_j.simple_best:
-               & \textbf{$data_j.simple_mise} \\
+               & \textbf{$data_j.simple_mise}
             #else
-               & $data_j.simple_mise \\
+               & $data_j.simple_mise
+            #end if
+            #if $data_j.first:
+              & \multirow{$data_n.len_js}{*}{$data_n.kde} \\
+            #else
+              & \\
             #end if
           #end for
         #end for
@@ -33,6 +40,6 @@
       \end{tabular}
     \end{minipage}
   #end for
-  \caption{Comparison MISE new estimator vs simple wavelet estimator}
-  \label{tab:mise}
+  \caption{$caption}
+  \label{tab:$label}
 \end{table}

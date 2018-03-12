@@ -18,23 +18,22 @@ def exec_gen(conn, sql, args=()):
 def connect(dist_name, wave_name):
     fname_db = dbname(dist_name, wave_name)
     if not os.path.isfile(fname_db):
-        conn = sqlite3.connect(fname_db)
-        create_table(conn)
+        raise ValueError('Database %s not found' % fname_db)
     else:
         conn = sqlite3.connect(fname_db)
     return conn
 
 def list_all(dist_code, wave_name):
     ns = [128,256,512,1024,2048,4096]
-    sql = """select n, case when j0 <= j1 then j1 + 1 else j0 end as j_level, ise
+    sql = """select n, case when j0 <= j1 then j1 + 1 else j0 end as j_level, ise, hd, etime
         from results
         where k = 1 and ((j1 >= j0 and j1 >= 2) or (j1 < j0))
         """
     # and ((j0 <= j1 and j1 > 2) or (j1 < j0))
     with connect(dist_code, wave_name) as conn:
         df = pandas.read_sql(sql, conn)
-    df2 = df.groupby([df.n, df.j_level])[['ise']].median()
-    print 'Median, k=1'
-    print df2
+    df2 = df.groupby([df.n, df.j_level])[['ise', 'hd', 'etime']].median()
+    print('Median, k=1')
+    print(df2)
 if __name__ == "__main__":
     list_all(sys.argv[1], sys.argv[2])

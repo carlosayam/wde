@@ -1,0 +1,24 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[textwidth = 7in, textheight=25cm,nohead]{geometry}
+\usepackage{ulem}
+\usepackage{graphicx, amssymb, amsmath, amsthm, amstext, booktabs, float, multirow, subfigure, rotating,natbib, epsfig}
+\setlength{\parindent}{0cm} % No indentation ever!
+%\bibliographystyle{plainnat}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{mathtools}
+\usepackage{bigstrut}
+% Select what to do with todo:
+% \usepackage[hide]{todo}  % notes not showed, final version
+\usepackage[marginpar]{todo}   % notes showed
+\begin{document}
+
+%
+% Generated $datetime
+%
+
+$table_ise
+
+$table_hd
+
+\end{document}

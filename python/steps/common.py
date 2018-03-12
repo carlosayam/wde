@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import math
+import sqlite3
+from scripts2d.utils import dist_from_code
 
 if 'PBS_O_HOME' in os.environ:
     PBS_O_HOME = os.environ['PBS_O_HOME']
@@ -61,6 +63,11 @@ def ise_hd_fname(dist_code, sample_size, start, block_size, symmetric):
     return '%(pdir)s/%(kde_data)s/%(num)05d/kde-%(block_size)03d-%(start)03d.csv' % dict(
         pdir=pdir, num=sample_size, start=start, block_size=block_size, kde_data=kde_data)
 
+def dbname(dist_name):
+    path_name = 'data/STEPS/%s/db' % dist_name
+    ensure_dir(path_name)
+    return '%s/data.db' % path_name
+
 def read_true_pdf(code):
     return np.load(true_pdf_fname(code))
 
@@ -69,3 +76,39 @@ def grid_points(dim):
     grid_n = 256 if dim == 2 else 35
     points = np.mgrid.__getitem__(tuple([slice(0.0, 1.0,  grid_n * 1j) for num in range(dim)])).reshape(dim, -1).T
     return points
+
+def calc_true_pdf(dist_code):
+    dist = dist_from_code(dist_code)
+    points = grid_points(dist.dim)
+    return dist.dim, dist.pdf(points)
+
+
+def create_table(conn):
+    # algorithm SPW, CLW, KDE
+    # wave_code, db10 (for SPW, CLW) or ''
+    sql = """
+    CREATE TABLE IF NOT EXISTS results (
+     fname varchar(256) NOT NULL,
+     algorithm varchar(8) NOT NULL,
+     wave_code varchar(8) NOT NULL,
+     n integer NOT NULL,
+     j0 integer NOT NULL,
+     j1 integer NOT NULL,
+     k integer NOT NULL,
+     ise real NOT NULL,
+     hd real NOT NULL,
+     etime real NOT NULL
+     )
+    """
+    conn.execute(sql)
+    print('results created')
+
+def connect(dist_name, create=False):
+    fname_db = dbname(dist_name)
+    if create and not os.path.isfile(fname_db):
+        print('Creating %s' % fname_db)
+        conn = sqlite3.connect(fname_db)
+        create_table(conn)
+    else:
+        conn = sqlite3.connect(fname_db)
+    return conn

@@ -27,7 +27,7 @@ for start in ${START[*]}; do
 #PBS -N KDE_${DIST}_${NUM}_$start
 #PBS -l nodes=1:ppn=1
 #PBS -l vmem=4gb
-#PBS -l walltime=2:30:00
+#PBS -l walltime=3:30:00
 #PBS -j oe
 #PBS -M z3403159@student.unsw.edu.au
 #PBS -m ae

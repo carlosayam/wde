@@ -8,7 +8,8 @@ import os
 import csv
 import sqlite3
 import numpy as np
-import pandas
+from datetime import datetime
+import pandas as pd
 from scipy.interpolate import interp1d
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -22,12 +23,16 @@ import scripts2d.utils as u
 from wde.estimator import WaveletDensityEstimator
 from wde.simple_estimator import SimpleWaveletDensityEstimator
 
+from steps.common import connect
+
 #
 # -- data source
 #
 
 def dbname(dist_name, wave_name):
-    return 'data/RESP/%s/%s/data-ise.db' % (dist_name, wave_name)
+    if wave_name[0:4] == 'sim-':
+        wave_name = wave_name[4:]
+    return 'data/STEPS/%s/db/%s/data-ise.db' % (dist_name, wave_name)
 
 def sample_name(dist_name, wave_name, fname):
     return 'data/RESP/%s/%s/%s' % (dist_name, wave_name, fname)
@@ -38,15 +43,6 @@ def exec_gen(conn, sql, args=()):
     while row is not None:
         yield row
         row = cur.fetchone()
-
-def connect(dist_name, wave_name):
-    fname_db = dbname(dist_name, wave_name)
-    if not os.path.isfile(fname_db):
-        conn = sqlite3.connect(fname_db)
-        create_table(conn)
-    else:
-        conn = sqlite3.connect(fname_db)
-    return conn
 
 class TemplateFile(object):
     def __init__(self, fname):
@@ -88,7 +84,7 @@ def tex_figure(data):
 
 def generate_true_plots():
     data = []
-    for code, title in [('mult', 'Gaussian mix 1'), ('mix2','Gaussian mix 2'), ('mix3', '2D Comb')]:
+    for code, title in [('mult', 'Gaussian mix 1'), ('mix1', 'Gaussian mix 1-B'), ('mix2','Gaussian mix 2'), ('mix3', '2D Comb')]:
         fname = generate_plot(code)
         data.append(dict(label=code, fname=fname, caption=title))
     tex_figure(data)
@@ -130,11 +126,11 @@ def generate_comparison_plots():
         dist=u.dist_from_code(dist_code),
         title='True density'
         ))
-    with connect(dist_code, 'db6') as conn:
+    with connect(dist_code) as conn:
         for row in exec_gen(conn, sql, (n, 3)):
             fname = sample_name(dist_code, 'db6', row[0])
             data = u.read_sample(fname)
-    print fname, len(data)
+    print(fname, len(data))
     wde = WaveletDensityEstimator('db6', k = 1, j0 = 3, j1 = 0)
     wde.fit(data)
     dists.append(dict(label='new_wde', dist=wde, title='New estimator'))
@@ -151,21 +147,24 @@ def generate_comparison_plots():
         figures=data,
         width=0.95/len(data)
     )
-    return
+    #return
     with open('data/plots-tex/comparison-figures.tex', 'w') as fh:
         fh.write(template.render(data))
 
 #
 # -- generate tables
 #
-def calc_n_data_wave(dist_code, n, wave_name):
-    sql = """select case when j0 <= j1 then j1 + 1 else j0 end as j_level, k, count(*), sum(ise), sum(ise * ise)
+def calc_n_data_wave(dist_code, algorithm, n, wave_code, what):
+    max_j = 4 if n <= 1024 or dist_code == 'mul3' else 5
+    k = 1 if algorithm == 'SPWE' else 0
+    sql = """select case when j0 <= j1 then j1 + 1 else j0 end as j_level, k, count(*), sum(%(what)s), sum(%(what)s * %(what)s)
         from results
-        where n = ? and k = 1 and ((j1 >= j0 and j1 >= 2) or (j1 < j0))
+        where algorithm = '%(algorithm)s' and wave_code = '%(wave_code)s'
+          and n = ? and k = %(k)d and (j1 < j0) and j0 <= %(max_j)d
         group by j_level, k
-        order by j_level, k"""
+        order by j_level, k""" % dict(what=what, max_j=max_j, algorithm=algorithm, wave_code=wave_code, k=k)
     data = {}
-    with connect(dist_code, wave_name) as conn:
+    with connect(dist_code) as conn:
         for row in exec_gen(conn, sql, (n,)):
             j_level, k, num_p, sum_p, sum2_p = row
             mean_p = sum_p / num_p
@@ -174,16 +173,35 @@ def calc_n_data_wave(dist_code, n, wave_name):
                 j=j_level,
                 mise='%.3f' % mean_p,
                 first=False,
-                best=False
+                best=False,
+                _mise=mean_p,
+                tick=False
             )
     return data
 
-def calc_n_data(dist_code, n):
-    data = calc_n_data_wave(dist_code, n, 'db6')
-    data_simple = calc_n_data_wave(dist_code, n, 'sim-db6')
+def get_kde(dist_code, n, what):
+    with connect(dist_code) as conn:
+        sql = """select count(1), sum(%(what)s), sum(%(what)s * %(what)s)
+            from results
+            where algorithm = 'KDE' and n = ?""" % dict(what=what)
+        rows = list(exec_gen(conn, sql, (n,)))
+        num_p, sum_p, sum_p2 = rows[0]
+        mean = sum_p / num_p
+        std = math.sqrt(sum_p2 / num_p - mean * mean)
+        return mean, 0 ##0.6745 * std
+
+def calc_n_data(dist_code, n, what):
+    kde, kde_confidence = get_kde(dist_code, n, what)
+    if what == 'ise':
+        print(dist_code, n, kde, kde_confidence)
+    data = calc_n_data_wave(dist_code, 'SPWE', n, 'db10', what)
+    data_simple = calc_n_data_wave(dist_code, 'CLWE', n, 'db10', what)
     js = [data[j] for j in sorted(data.keys())]
     js[0]['first'] = True
-    sorted(js, key=lambda v: v['mise'])[0]['best'] = True
+    best_j = sorted(js, key=lambda v: v['mise'])[0]
+    best_j['best'] = True
+    if kde - kde_confidence <= best_j['_mise'] <= kde + kde_confidence:
+        best_j['tick'] = True
     sorted(data_simple.values(), key=lambda v: v['mise'])[0]['best'] = True
     for data_j in js:
         data_j['simple_mise'] = data_simple[data_j['j']]['mise']
@@ -191,35 +209,48 @@ def calc_n_data(dist_code, n):
     return dict(
         js=js,
         len_js=len(js),
-        n=n
+        n=n,
+        kde='%.3f' % kde,
+        kde_confidence='%.3f' % kde_confidence
     )
 
-def calc_table_data(dist_code, title):
+def calc_table_data(dist_code, title, what):
     ns=[]
-    for n in [128,256,512,1024,2048,4096]:
-        ns.append(calc_n_data(dist_code, n))
+    for n in [128,256,512,1024,2048,4096,8192]:
+        ns.append(calc_n_data(dist_code, n, what))
     return dict(
         title=title,
         ns=ns
     )
     
-def generate_table_mise():
-    template = TemplateFile('scripts2d/templates/tables.tex.qtl')
-    data = []
-    for code, title in [('mult', 'Gaussian mix 1'), ('mix2','Gaussian mix 2'), ('mix3', '2D Comb')]:
-        data.append(calc_table_data(code, title))
-    data = dict(
-        data=data,
-        width=0.95/len(data)
-        )
-    with open('data/plots-tex/tables.tex', 'w') as fh:
-        temp_str = template.render(data)
+def generate_tables_mise():
+    master = TemplateFile('steps/templates/tables-master.tex.qtl')
+    master_table = {}
+    for what in ['ise', 'hd']:
+        template = TemplateFile('steps/templates/tables.tex.qtl')
+        data = []
+        for code, title in [('mult', 'Gaussian mix (a)'), ('mix2','Gaussian mix (b)'), ('mix3', 'Comb (c)') ]: #, ('mul3', 'Gaussian 3D mix (d)')
+            data.append(calc_table_data(code, title, what))
+        data = dict(
+            data=data,
+            width=0.95/len(data),
+            caption='Comparison for %s' % what.upper(),
+            label='mise_%s' % what
+            )
+        master_table[what] = template.render(data)
+    with open('data/plots-tex/tables-master.tex', 'w') as fh:
+        data = dict(
+            table_ise=master_table['ise'],
+            table_hd=master_table['hd'],
+            datetime=str(datetime.now())
+            )
+        temp_str = master.render(data)
         fh.write(temp_str)
 
 #
 #.-- generate contours
 #
-def generate_threshold_contours():
+def generate_threshold_contours(dist_code):
     np.random.seed(1)
     dist = u.dist_from_code('mix2')
     data = dist.rvs(1000)
@@ -246,7 +277,10 @@ def generate_all():
     #plt.ioff()
     #generate_true_plots()
     #generate_comparison_plots()
-    generate_table_mise()
+    generate_tables_mise()
     #generate_threshold_contours()
     #generate_other_statistics()
-    print 'Done'
+    print('Done')
+
+if __name__ == "__main__":
+    generate_all()

@@ -1,5 +1,6 @@
 import csv
 import math
+import np
 import os
 import sqlite3
 import sys
@@ -27,8 +28,7 @@ def exec_gen(conn, sql, args=()):
 def connect(dist_name, wave_name):
     fname_db = dbname(dist_name, wave_name)
     if not os.path.isfile(fname_db):
-        conn = sqlite3.connect(fname_db)
-        create_table(conn)
+        raise ValueError('Database %s not found' % fname_db)
     else:
         conn = sqlite3.connect(fname_db)
     return conn

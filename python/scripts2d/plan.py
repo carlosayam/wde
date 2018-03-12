@@ -47,7 +47,7 @@ SW_DIR="$PBS_O_HOME/WDE/wde/python"
 mkdir -p $RESP_DIR
 cd $RESP_DIR
 
-. $SW_DIR/wdeenv/bin/activate
+. $SW_DIR/wdeenv3/bin/activate
 $SW_DIR/scripts2d/run_for.py %(bag_size)d $PBS_ARRAYID
 """[1:]
 
@@ -66,8 +66,8 @@ def ns_for(dist):
 def gen_samples(dist):
     for n in ns_for(dist):
         for i in range(500):
-            data = dist.rvs(n)
-            fname = u.write_sample(n, i, data)
+            ## data = dist.rvs(n) !!!
+            fname = u.write_sample(n, i, None) # , data)
             yield fname, n
 
 def main(dist_code, wave_code):
@@ -75,7 +75,7 @@ def main(dist_code, wave_code):
     plans = []
     dist = u.dist_from_code(dist_code)
     for fname, n in gen_samples(dist):
-        for j0 in range(0, 4):
+        for j0 in range(4, 5):
             j1 = j0 - 1 # single level
             if wave_code[0:4] == 'sim-':
                 plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=1, rand=random.random()))
@@ -85,7 +85,7 @@ def main(dist_code, wave_code):
                     plans.append(dict(fname=fname, dist_code=dist.code, wave_code=wave_code, j0=j0, j1=j1, k=k, rand=random.random()))
                     k = 2 * k
     u.write_plans(plans)
-    u.write_dist_pdf(u.dist_from_code(dist_code))
+    ## u.write_dist_pdf(u.dist_from_code(dist_code)) !!!
     write_pbs(dist_code, wave_code, len(plans))
     print('Done %s, %s = %d' % (dist_code, wave_code, len(plans)))
 

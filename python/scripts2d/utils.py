@@ -29,6 +29,19 @@ class TruncatedMultiNormalD(object):
         nns = reduce(lambda x, y: (x-1) * (y-1), z.shape)
         self.sum = z.sum()/nns
 
+    def mathematica(self):
+        # render Mathematica code to plot
+        def fn(norm_dist):
+            mu = np.array2string(norm_dist.mean, separator=',')
+            mu = mu.replace('[','{').replace(']','}').replace('e','*^')
+            cov = np.array2string(norm_dist.cov, separator=',')
+            cov = cov.replace('[','{').replace(']','}').replace('e','*^')
+            return 'MultinormalDistribution[%s,%s]' % (mu, cov)
+        probs = '{%s}' % ','.join([str(f / min(self.probs)) for f in self.probs])
+        dists = '{%s}' % ','.join([fn(d) for d in self.dists])
+        resp = 'MixtureDistribution[%s,%s]' % (probs, dists)
+        return resp
+
     def _rvs(self):
         while True:
             for xvs in zip(*[dist.rvs(100) for dist in self.dists]):
@@ -125,6 +138,66 @@ def dist_from_code(code):
             [m1, m2/2, m1/4, m2/8],
             code=code
             )
+    elif code == 'mix4':
+        sigma = 0.03
+        angle = 10.
+        theta = (angle / 180.) * np.pi
+        rot = np.array([[np.cos(theta), -np.sin(theta)],
+                        [np.sin(theta), np.cos(theta)]])
+        m1 = np.array([[sigma / 6, 0], [0, sigma / 7]])
+        m2 = np.dot(rot, np.dot(m1, rot.T))
+        prop = np.array([8, 4, 2, 1, 384])
+        prop = prop / prop.sum()
+        return TruncatedMultiNormalD(
+            prop.tolist(),
+            [np.array([0.2, 0.3]), np.array([0.5, 0.5]), np.array([0.65, 0.7]), np.array([0.82, 0.85]), np.array([0.5, 0.5])],
+            [m1, m2 / 2, m1 / 4, m2 / 8, 0.18 * np.eye(2, 2)],
+            code=code
+        )
+    elif code == 'mix5':
+        sigma = 0.03
+        angle = 10.
+        theta = (angle / 180.) * np.pi
+        rot = np.array([[np.cos(theta), -np.sin(theta)],
+                        [np.sin(theta), np.cos(theta)]])
+        m1 = np.array([[sigma / 6, 0], [0, sigma / 7]])
+        m2 = np.dot(rot, np.dot(m1, rot.T))
+        prop = np.array([8, 4, 2, 1])
+        prop = prop / prop.sum()
+        return TruncatedMultiNormalD(
+            prop.tolist(),
+            [np.array([0.2, 0.3]), np.array([0.5, 0.5]), np.array([0.65, 0.7]), np.array([0.82, 0.85]),
+             np.array([0.5, 0.5])],
+            [m1, m2 / 2, m1 / 6, m2 / 8],
+            code=code
+        )
+    elif code == 'mix6':
+        theta = np.pi / 4
+        rot = lambda angle : np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+        m0 = np.array([[0.1, 0], [0, 0.0025]])
+        m1 = np.dot(rot(theta), np.dot(m0, rot(theta).T)) / 2
+        m2 = np.dot(rot(-theta), np.dot(m0, rot(-theta).T)) / 2
+        prop = np.array([1, 1])
+        prop = prop / prop.sum()
+        return TruncatedMultiNormalD(
+            prop.tolist(),
+            [np.array([0.3, 0.3]), np.array([0.7, 0.3])], [m1, m2],
+            code=code
+        )
+    elif code == 'mix7': ## not good
+        m0 = np.array([[0.1, 0], [0, 0.005]])
+        m1 = np.array([[0.005, 0], [0, 0.1]])
+        prop = np.array([1, 1, 1, 1])
+        prop = prop / prop.sum()
+        return TruncatedMultiNormalD(
+            prop.tolist(),
+            [np.array([0.5, 0.3]),
+             np.array([0.5, 0.7]),
+             np.array([0.3, 0.5]),
+             np.array([0.7, 0.5])],
+            [m0, m0, m1, m1],
+            code=code
+        )
     else:
         raise NotImplemented('Unknown distribution code [%s]' % code)
 
@@ -135,7 +208,7 @@ def mkdir(path):
 def write_sample(n, i, data):
     mkdir('data2d/samples')
     fname = 'data2d/samples/data-%05d-%03d.csv' % (n, i)
-    np.savetxt(fname, data, fmt='%f', delimiter=',')
+    ## np.savetxt(fname, data, fmt='%f', delimiter=',') !!!
     return fname
 
 def read_sample(fname):

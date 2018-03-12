@@ -12,15 +12,8 @@ import argparse
 import numpy as np
 import math
 from datetime import datetime
-from steps.common import sample_fname, parent_dir, ensure_dir, Adder, grid_points
-from scripts2d.utils import mise_mesh, dist_from_code
+from steps.common import sample_fname, parent_dir, ensure_dir, Adder, grid_points, calc_true_pdf
 from wde.estimator import WaveletDensityEstimator
-
-
-def calc_true_pdf(dist_code):
-    dist = dist_from_code(dist_code)
-    points = grid_points(dist.dim)
-    return dist.dim, dist.pdf(points)
 
 
 def calc_spwe_ise_hd(dim, wde, true_pdf):

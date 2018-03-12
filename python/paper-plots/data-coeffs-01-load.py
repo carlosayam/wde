@@ -25,7 +25,7 @@ def create_table(conn):
      )
     """
     conn.execute(sql)
-    print 'results created'
+    print('results created')
 
 def connect(dist_name, wave_name):
     fname_db = dbname(dist_name, wave_name)
@@ -46,8 +46,8 @@ def read_rows(fcsv):
             z1, z2 = int(zs[0]), int(zs[1])
             yield row[0], int(row[3]), int(row[4]), int(row[5]), int(row[6]), int(row[7]), row[8], z1, z2, row[10]
         except:
-            print row
-            print 'E:',fcsv.line_num, len(row)
+            print(row)
+            print('E:',fcsv.line_num, len(row))
             raise
 
 def load_data(dist_name, wave_name):
@@ -57,15 +57,15 @@ def load_data(dist_name, wave_name):
         with connect(dist_name, wave_name) as conn:
             conn.execute('delete from results')
             headers = next(fcsv)
-            print headers
+            print(headers)
             for fname, n, j0, j1, k, j, qx, z1, z2, coeff in read_rows(fcsv):
                 try:
                     conn.execute('insert into results (fname, n, j0, j1, k, j, qx, z1, z2, coeff) values (?,?,?,?,?,?,?,?,?,?)', (fname, n, j0, j1, k, j, qx, z1, z2, coeff))
                 except sqlite3.Error as e:
-                    print e
-                    print fname, n
+                    print(e)
+                    print(fname, n)
                     raise
-    print 'Done'
+    print('Done')
 
 if __name__ == "__main__":
     load_data(sys.argv[1], sys.argv[2])

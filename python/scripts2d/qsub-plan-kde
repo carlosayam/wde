@@ -1,0 +1,14 @@
+#!/bin/bash
+dist=$1
+wavelet=$2
+
+if [ -z "$dist" ]; then
+  echo 'Usage: qsub-plan.sh <dist> <wavelet>'
+  exit
+fi
+if [ -z "$wavelet" ]; then
+  echo 'Usage: qsub-plan.sh <dist> <wavelet>'
+  exit
+fi
+
+qsub -v DIST=$dist,WAVELET=$wavelet plan.pbs
