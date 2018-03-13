@@ -198,6 +198,23 @@ def dist_from_code(code):
             [m0, m0, m1, m1],
             code=code
         )
+    elif code == 'mix8':
+        sigma = 0.03
+        angle = 10.
+        theta = (angle / 180.) * np.pi
+        rot = np.array([[np.cos(theta), -np.sin(theta)],
+                        [np.sin(theta), np.cos(theta)]])
+        m1 = np.array([[sigma / 6, 0], [0, sigma / 8]])
+        m2 = np.dot(rot, np.dot(m1, rot.T))
+        prop = np.array([8, 6, 5, 3])
+        prop = prop / prop.sum()
+        return TruncatedMultiNormalD(
+            prop.tolist(),
+            [np.array([0.2, 0.3]), np.array([0.5, 0.5]), np.array([0.65, 0.7]), np.array([0.82, 0.85]),
+             np.array([0.5, 0.5])],
+            [m1, m2 / 1.5, m1 / 2, m2 / 3],
+            code=code
+        )
     else:
         raise NotImplemented('Unknown distribution code [%s]' % code)
 
