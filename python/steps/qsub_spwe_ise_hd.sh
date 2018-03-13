@@ -1,7 +1,9 @@
 #!/bin/bash
 
 DIST=$1
-NUM=$2
+WAVE=$2
+J0=$3
+NUM=$4
 
 declare -a START
 if [ $DIST == mul3 ]; then
@@ -23,12 +25,11 @@ else
 fi
 
 for start in ${START[*]}; do
-    fname=tmp-$DIST-$NUM-$start.pbs
-    cat << EOF > $fname
-#PBS -N KDE_${DIST}_${NUM}_$start
+    cat << EOF | qsub -
+#PBS -N SPWE_${DIST}_${NUM}_$start
 #PBS -l nodes=1:ppn=1
 #PBS -l vmem=4gb
-#PBS -l walltime=2:30:00
+#PBS -l walltime=3:30:00
 #PBS -j oe
 #PBS -M z3403159@student.unsw.edu.au
 #PBS -m ae
@@ -40,10 +41,8 @@ SW_DIR="\$PBS_O_HOME/WDE/wde/python"
 . \$SW_DIR/wdeenv3/bin/activate
 cd \$SW_DIR
 export PYTHONPATH=.
-python steps/kde_ise_hd.py $DIST $NUM $start $BLOCK
+python steps/s04_spwe_ise_hd.py $DIST $WAVE $J0 1 $NUM --start $start --block_size $BLOCK
 EOF
-
-    qsub $fname
-    echo "SUBMITTED steps/kde_ise_hd.py $DIST $NUM $start $BLOCK"
+    echo "SUBMITTED steps/s04_spwe_ise_hd.py $DIST $WAVE $J0 1 $NUM --start $start --block_size $BLOCK"
     sleep 5
 done

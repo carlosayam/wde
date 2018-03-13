@@ -39,7 +39,7 @@ SW_DIR="\$PBS_O_HOME/WDE/wde/python"
 . \$SW_DIR/wdeenv3/bin/activate
 cd \$SW_DIR
 export PYTHONPATH=.
-python steps/kde_ise_hd.py $DIST $NUM $start $BLOCK
+python steps/s03_kde_ise_hd.py $DIST $NUM $start $BLOCK
 EOF
     echo "SUBMITTED steps/kde_ise_hd.py $DIST $NUM $start $BLOCK"
 done
