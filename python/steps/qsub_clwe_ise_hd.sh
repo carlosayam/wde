@@ -26,7 +26,7 @@ fi
 
 for start in ${START[*]}; do
     cat << EOF | qsub -
-#PBS -N SPWE_${DIST}_${NUM}_$start
+#PBS -N CLWE_${DIST}_${NUM}_$start
 #PBS -l nodes=1:ppn=1
 #PBS -l vmem=4gb
 #PBS -l walltime=3:30:00
@@ -41,7 +41,7 @@ SW_DIR="\$PBS_O_HOME/WDE/wde/python"
 . \$SW_DIR/wdeenv3/bin/activate
 cd \$SW_DIR
 export PYTHONPATH=.
-python steps/s04_spwe_ise_hd.py $DIST $WAVE $J0 1 $NUM --start $start --block_size $BLOCK
+python steps/s05_clwe_ise_hd.py $DIST $WAVE $J0 $NUM --start $start --block_size $BLOCK
 EOF
-    echo "SUBMITTED steps/s04_spwe_ise_hd.py $DIST $WAVE $J0 1 $NUM --start $start --block_size $BLOCK"
+    echo "SUBMITTED steps/s05_clwe_ise_hd.py $DIST $WAVE $J0 $NUM --start $start --block_size $BLOCK"
 done
