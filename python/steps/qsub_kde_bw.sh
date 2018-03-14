@@ -24,7 +24,7 @@ SW_DIR="\$PBS_O_HOME/WDE/wde/python"
 . \$SW_DIR/wdeenv3/bin/activate
 cd \$SW_DIR
 export PYTHONPATH=.
-python steps/kde_bandwidth.py $DIST $NUM
+python steps/s02_kde_bandwidth.py $DIST $NUM
 EOF
 
 echo "SUBMITTED steps/kde_bandwidth.py $DIST $NUM"
