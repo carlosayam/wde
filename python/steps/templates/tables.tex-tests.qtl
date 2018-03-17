@@ -1,0 +1,40 @@
+\begin{table}[ht!]
+  \fontsize{5}{6}\selectfont
+  \centering
+  #for $tabdata in $data:
+    \begin{minipage}[t]{$width\textwidth}
+      \centering
+      \textbf{$tabdata.title} \\
+      \vspace{6pt}
+      \begin{tabular}{|r|r|r|r|r|}
+        \hline
+        \textbf{n} & \textbf{J+1} & \textbf{SP} & \textbf{Class.} & \textbf{KDE} \\
+        #for $data_n in $tabdata.ns:
+          #for $data_j in $data_n.js:
+            #if $data_j.first:
+              \hline
+              \multirow{$data_n.len_js}{*}{$data_n.n}
+            #end if
+            #if $data_j.best:
+              & \textbf{$data_j.j} &
+              #if $data_j.tick:
+                \checkmark
+              #end if
+              \textbf{$data_j.mise}
+            #else
+              & $data_j.j & $data_j.mise
+            #end if
+            #if $data_j.first:
+              & \multirow{$data_n.len_js}{*}{$data_n.kde} \\
+            #else
+              & \\
+            #end if
+          #end for
+        #end for
+        \hline
+      \end{tabular}
+    \end{minipage}
+  #end for
+  \caption{$caption}
+  \label{tab:$label}
+\end{table}

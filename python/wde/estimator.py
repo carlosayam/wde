@@ -14,10 +14,7 @@ class WaveletDensityEstimator(object):
         self.j1 = j1 if j1 is not None else (j0 - 1)
         self.multi_supports = wave_support_info(self.wave)
         self.pdf = None
-        if thresholding is None:
-            self.thresholding = lambda n, j, dn, c: c
-        else:
-            self.thresholding = thresholding
+        self.thresholding = thresholding
 
     def fit(self, xs):
         "Fit estimator to data. xs is a numpy array of dimension n x d, n = samples, d = dimensions"
@@ -103,7 +100,7 @@ class WaveletDensityEstimator(object):
                 wavef = self.dual_wave_funs[qx]
                 for zs, coeff in self.coeffs[j][qx].items():
                     num = self.nums[j][qx][zs]
-                    coeff_t = self.thresholding(self.n, j - self.j0, num, coeff) if threshold else coeff
+                    coeff_t = self.thresholding(self.n, j, self.j0, num, coeff) if threshold and self.thresholding else coeff
                     norm_j += coeff_t * coeff_t
                     vals = coeff_t * wavef(jpow2, zs, coords)
                     #print('xs_sum', xs_sum.shape)

@@ -72,14 +72,15 @@ def read_true_pdf(code):
     return np.load(true_pdf_fname(code))
 
 
-def grid_points(dim):
-    grid_n = 256 if dim == 2 else 35
+def grid_points(dim, grid_n=None):
+    if grid_n is None:
+        grid_n = 256 if dim == 2 else 32
     points = np.mgrid.__getitem__(tuple([slice(0.0, 1.0,  grid_n * 1j) for num in range(dim)])).reshape(dim, -1).T
     return points
 
-def calc_true_pdf(dist_code):
+def calc_true_pdf(dist_code, points=None):
     dist = dist_from_code(dist_code)
-    points = grid_points(dist.dim)
+    points = grid_points(dist.dim, points)
     return dist.dim, dist.pdf(points)
 
 
@@ -112,3 +113,26 @@ def connect(dist_name, create=False):
     else:
         conn = sqlite3.connect(fname_db)
     return conn
+
+def l2_norm(v1_lin, v2_lin, nns):
+    diff = v1_lin - v2_lin
+    # Ok, because we know domain [0,1]x[0,1] => area = 1 x 1 = 1
+    err = (diff * diff).sum()
+    # extreme values are zero, which do not contribute to integral, hence correction
+    # in size "_ - 1".
+    return err/nns
+
+def calc_spwe_ise(dim, wde, true_pdf, points=None):
+    points = grid_points(dim, points)
+    pred_xy = wde.pdf(points)
+    nns = points.shape[0]
+    ise = l2_norm(pred_xy, true_pdf, nns)
+    return ise
+
+def calc_spwe_ise_hd(dim, wde, true_pdf):
+    points = grid_points(dim)
+    pred_xy = wde.pdf(points)
+    nns = points.shape[0]
+    ise = l2_norm(pred_xy, true_pdf, nns)
+    hd = l2_norm(np.sqrt(pred_xy), np.sqrt(true_pdf), nns)
+    return ise, hd

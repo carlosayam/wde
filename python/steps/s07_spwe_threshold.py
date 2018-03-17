@@ -12,9 +12,25 @@ import argparse
 import numpy as np
 import math
 from datetime import datetime
-from steps.common import sample_fname, parent_dir, ensure_dir, Adder, calc_spwe_ise_hd, calc_true_pdf
+from steps.common import sample_fname, parent_dir, ensure_dir, Adder, grid_points, calc_true_pdf
 from wde.estimator import WaveletDensityEstimator
 
+
+def calc_spwe_ise_hd(dim, wde, true_pdf):
+    def l2_norm(v1_lin, v2_lin):
+        diff = v1_lin - v2_lin
+        # Ok, because we know domain [0,1]x[0,1] => area = 1 x 1 = 1
+        err = (diff * diff).sum()
+        # extreme values are zero, which do not contribute to integral, hence correction
+        # in size "_ - 1".
+        return err/nns
+
+    points = grid_points(dim)
+    pred_xy = wde.pdf(points)
+    nns = points.shape[0]
+    ise = l2_norm(pred_xy, true_pdf)
+    hd = l2_norm(np.sqrt(pred_xy), np.sqrt(true_pdf))
+    return ise, hd
 
 def spwe_ise_hd_fname(dist_code, wave, j0, j1, k, sample_size, start, block_size):
     pdir = parent_dir(dist_code)

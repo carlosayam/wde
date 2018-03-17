@@ -73,7 +73,7 @@ def generate_plot(dist_code):
     return 'true-%s.pdf' % dist_code
 
 def tex_figure(data):
-    template = TemplateFile('scripts2d/templates/figures.tex.qtl')
+    template = TemplateFile('steps/templates/figures.tex.qtl')
     data = dict(
         label='true_figures',
         figures=data,
@@ -84,7 +84,7 @@ def tex_figure(data):
 
 def generate_true_plots():
     data = []
-    for code, title in [('mult', 'Gaussian mix 1'), ('mix1', 'Gaussian mix 1-B'), ('mix2','Gaussian mix 2'), ('mix3', '2D Comb')]:
+    for code, title in [('mult', 'Gaussian mix 1'), ('mix2','Gaussian mix 2'), ('mix8', '2D Comb')]:
         fname = generate_plot(code)
         data.append(dict(label=code, fname=fname, caption=title))
     tex_figure(data)
@@ -229,7 +229,7 @@ def generate_tables_mise():
     for what in ['ise', 'hd']:
         template = TemplateFile('steps/templates/tables.tex.qtl')
         data = []
-        for code, title in [('mult', 'Gaussian mix (a)'), ('mix2','Gaussian mix (b)'), ('mix3', 'Comb (c)') ]: #, ('mul3', 'Gaussian 3D mix (d)')
+        for code, title in [('mult', 'Gaussian mix (a)'), ('mix2','Gaussian mix (b)'), ('mix8', 'Comb (c)'), ('mul3', 'Gaussian 3D mix') ]: #, ('mul3', 'Gaussian 3D mix (d)')
             data.append(calc_table_data(code, title, what))
         data = dict(
             data=data,
