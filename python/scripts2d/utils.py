@@ -225,7 +225,7 @@ def mkdir(path):
 def write_sample(n, i, data):
     mkdir('data2d/samples')
     fname = 'data2d/samples/data-%05d-%03d.csv' % (n, i)
-    ## np.savetxt(fname, data, fmt='%f', delimiter=',') !!!
+    # np.savetxt(fname, data, fmt='%f', delimiter=',') !!!
     return fname
 
 def read_sample(fname):
@@ -249,7 +249,7 @@ def read_plans(bag_size, bag_number):
     return rows
 
 def mise_mesh(d=2):
-    grid_n = 256 if d == 2 else 64
+    grid_n = 256 if d == 2 else 40
     VVs = [np.linspace(0.0,1.0, num=grid_n) for i in range(d)]
     return np.meshgrid(*VVs)
 
