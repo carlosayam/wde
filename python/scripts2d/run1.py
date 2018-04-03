@@ -6,9 +6,28 @@ import numpy as np
 from wde.estimator import WaveletDensityEstimator
 from wde.simple_estimator import SimpleWaveletDensityEstimator
 from wde.estimator_via_likelihood import WaveletDensityEstimatorByLikelihood
-from sklearn.metrics import mean_squared_error
-from scipy import stats
 from steps.common import grid_points, calc_true_pdf
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+
+def generate_plot(dist):
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.view_init(elev=0, azim=-45)
+    ax.set_zlim(-2,20)
+    X = np.linspace(0.0,1.0, num=256)
+    Y = np.linspace(0.0,1.0, num=256)
+    XX, YY = np.meshgrid(X, Y)
+    Z = dist.pdf((XX, YY))
+    # see http://mpastell.com/2013/05/02/matplotlib_colormaps/
+    surf = ax.plot_surface(XX, YY, Z, edgecolors='k', linewidth=0.5, cmap=cm.get_cmap('BuGn'))
+    #ax.set_zlim(0, 5)
+    plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+    plt.show()
+    plt.close(fig)
 
 def calc_mle_ise_hd(dim, wmle, true_pdf):
     def l2_norm(v1_lin, v2_lin):
@@ -33,6 +52,9 @@ def main(args):
     random.seed(args.seed)
     data = dist.rvs(args.n)
     true_z = dist.pdf(u.mise_mesh(dist.dim))
+    if args.true:
+        generate_plot(dist)
+        return
     if wave_code[0:4] == 'sim-':
         wde = SimpleWaveletDensityEstimator(wave_code[4:], j0 = args.j0, j1 = args.j1)
     elif wave_code[0:4] == 'mle-':
@@ -44,11 +66,11 @@ def main(args):
     elapsed_time = (datetime.datetime.now() - t0).total_seconds()
     dim, true_pdf = calc_true_pdf(args.code)
 
-    pred_z = wde.pdf(u.mise_mesh(d=dist.dim))
     ise, hd = calc_mle_ise_hd(wde.pdf.dim, wde, true_pdf)
     print(args)
     print('time', elapsed_time)
     print('ISE =', ise, 'HD = ', hd)
+    generate_plot(wde)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="single wde estimator")
@@ -59,6 +81,7 @@ if __name__ == "__main__":
     parser.add_argument('-k', help='k in k-NN', type=int, default=1)
     parser.add_argument('-n', help='number of samples', type=int, default=1000)
     parser.add_argument('--seed', help='seed', type=int, default=random.randint(0, 999999))
+    parser.add_argument('--true', help='Just plot true density', action='store_true')
     args = parser.parse_args()
 
     main(args)
