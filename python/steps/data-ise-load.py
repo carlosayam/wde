@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="database loading")
     parser.add_argument('-d', '--delete', action='store_true', default=False)
     parser.add_argument('algorithm', help='Algorithm', choices=['SPWE', 'CLWE', 'KDE'])
-    parser.add_argument('dist_code', help='code for distributiuon')
+    parser.add_argument('dist_code', help='code for distribution')
     parser.add_argument('fnames', help='fname to add', nargs='+')
     args = parser.parse_args()
 

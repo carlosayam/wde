@@ -111,6 +111,7 @@ def connect(dist_name, create=False):
         conn = sqlite3.connect(fname_db)
         create_table(conn)
     else:
+        print('Opening %s' % fname_db)
         conn = sqlite3.connect(fname_db)
     return conn
 

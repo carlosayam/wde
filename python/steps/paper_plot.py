@@ -22,8 +22,11 @@ from Cheetah.Template import Template
 import scripts2d.utils as u
 from wde.estimator import WaveletDensityEstimator
 from wde.simple_estimator import SimpleWaveletDensityEstimator
+from wde.thresholding import soft_threshold, soft_threshold_2, ultrasoft_threshold, block_threshold
 
-from steps.common import connect
+from statsmodels.nonparametric.kernel_density import KDEMultivariate
+
+from steps.common import connect, sample_fname, calc_true_pdf, calc_spwe_ise, grid_points
 
 #
 # -- data source
@@ -216,7 +219,10 @@ def calc_n_data(dist_code, n, what):
 
 def calc_table_data(dist_code, title, what):
     ns=[]
-    for n in [128,256,512,1024,2048,4096,8192]:
+    nn = [128,256,512,1024,2048,4096]
+    if dist_code != 'mul3':
+        nn.append(8192)
+    for n in nn:
         ns.append(calc_n_data(dist_code, n, what))
     return dict(
         title=title,
@@ -233,7 +239,7 @@ def generate_tables_mise():
             data.append(calc_table_data(code, title, what))
         data = dict(
             data=data,
-            width=0.95/len(data),
+            width=1.90/len(data),
             caption='Comparison for %s' % what.upper(),
             label='mise_%s' % what
             )
@@ -246,6 +252,7 @@ def generate_tables_mise():
             )
         temp_str = master.render(data)
         fh.write(temp_str)
+    #with open('data/plots-tex/table')
 
 #
 #.-- generate contours
@@ -253,14 +260,14 @@ def generate_tables_mise():
 def generate_threshold_contours(dist_code):
     np.random.seed(1)
     dist = u.dist_from_code('mix2')
-    data = dist.rvs(1000)
+    data = dist.rvs(1024)
     dists = []
     dists.append(dict(
         label='comp_true',
         dist=u.dist_from_code(dist_code),
         title='True density'
         ))
-    wde = WaveletDensityEstimator('db6', k = 1, j0 = 3, j1 = 0)
+    wde = WaveletDensityEstimator('db10', k = 1, j0 = 3, j1 = 4)
     wde.fit(data)
     dists.append(dict(label='new_wde', dist=wde, title='New estimator'))
     wde.fit(data)
@@ -273,12 +280,147 @@ def generate_threshold_contours(dist_code):
 def generate_other_statistics():
     pass
 
+def contour_plot_it(dist, data, fname=None):
+    fig = plt.figure()
+    X = np.linspace(0.0,1.0, num=75)
+    Y = np.linspace(0.0,1.0, num=75)
+    XX, YY = np.meshgrid(X, Y)
+    Z = dist.pdf((XX, YY))
+    cs = plt.contour(XX, YY, Z, alpha=0.7, levels=np.linspace(0,16,10))
+    plt.clabel(cs, inline=1, fontsize=10)
+    #plt.scatter(data[:,0], data[:,1], s=2, alpha=0.0001)
+    if fname is not None:
+        plt.savefig('data/plots-tex/%s' % fname, pad_inches=0.0, orientation='portrait', frameon=False, bbox_inches='tight')
+    plt.clf()
+    #plt.show()
+
+def soft_threshold_initial(wde):
+    tt1 = max([beta for j in range(wde.j0, wde.j1+1) for beta in wde.get_betas(j)])
+    print('Max \\beta', tt1)
+    tt1 = 2 * tt1 / (math.sqrt(wde.j1 - wde.j0 + 1) / math.sqrt(wde.n))
+    return 0, tt1
+
+
+def soft_grid(grid_intval):
+    tt0, tt1 = grid_intval
+    grid_n = 10
+    grid_dn = 3
+    for i in range(grid_n):
+        tt_i = tt0 + (tt1 - tt0) * i / (grid_n - 1)
+        yield i, tt_i
+
+def num_threshold_initial(wde):
+    tt1 = max(wde.get_nums())
+    print('Max nums', tt1)
+    return 0, tt1
+
+def num_grid(grid_intval):
+    tt0, tt1 = grid_intval
+    if tt0 == tt1:
+        yield 0, tt0
+        raise StopIteration
+    grid_n = 16
+    for i in range(grid_n):
+        tt_i = int(tt0  + (tt1 - tt0) * i / grid_n)
+        yield i, tt_i
+
+def threshold_calc(wde, true_pdf, th_fun, th_str, initial_fun, grid_fun):
+    # soft thresholding calculation
+    grid_intval = initial_fun(wde)
+    best_diff = 1
+    best_ise = calc_spwe_ise(wde.dim, wde, true_pdf, 64)
+    print('Initial ISE at j0=%d, j1=%d' % (wde.j0, wde.j1), best_ise)
+    iterations = 0
+    while iterations < 3 or best_diff > 0.00001:
+        print(grid_intval, '->', best_ise, ',', best_diff)
+        new_best = best_ise
+        best_i = 0
+        grid_vals = list(grid_fun(grid_intval))
+        for i, tt_i in grid_vals:
+            wde.thresholding = th_fun(tt_i)
+            wde.pdf = wde.calc_pdf()
+            new_ise = calc_spwe_ise(wde.dim, wde, true_pdf, 64)
+            if new_ise < new_best:
+                print(i, tt_i, '>', new_ise)
+                new_best = new_ise
+                best_tt = tt_i
+                best_i = i
+        best_diff = best_ise - new_best
+        best_ise = new_best
+        grid_intval = (grid_vals[max(best_i - 2,0)][1], grid_vals[min(best_i + 2, len(grid_vals))][1])
+        iterations += 1
+    print('Best ISE at j0=%d, j1=%d for %s :' % (wde.j0, wde.j1, th_str), best_ise)
+    return best_tt
+
+def generate_plots_threshold(dist_code, wave):
+    np.random.seed(1)
+    nn = 4096
+    print('>>>>', wave, nn)
+    j0_ini = 4
+    j0 = j0_ini - 3 # 3, 1
+    j1 = j0 + 2 #4
+    th_fun, th_str = block_threshold, 'block_threshold'
+
+    # ttt = 0.7
+    # fig = plt.figure()
+    # th = ultrasoft_threshold(ttt)
+    # fn = lambda coeff: th(nn, 3, 3, 2, coeff)
+    # rr = np.linspace(-int(5 * ttt), int(5 * ttt), 40)
+    # yy = [fn(y) for y in rr]
+    # plt.plot(rr, yy)
+    # plt.plot([min(rr), max(rr)],[min(rr), max(rr)], 'r--', alpha=0.3)
+    # plt.plot([min(rr), max(rr)],[min(rr) - ttt, max(rr) - ttt], 'k--', alpha=0.3)
+    # plt.plot([min(rr), max(rr)],[min(rr) + ttt, max(rr) + ttt], 'k--', alpha=0.3)
+    # plt.show()
+    #
+    # sys.stdin.read()
+    # return
+
+    dist = u.dist_from_code(dist_code)
+    t0 = datetime.now()
+    fname = sample_fname(dist_code, nn, 1)
+    sample = np.genfromtxt(fname, delimiter=',')
+    points = grid_points(dist.dim, 64)
+    true_pdf_64 = dist.pdf(points)
+
+    # kde = KDEMultivariate(sample, 'c' * sample.shape[1], bw='cv_ml')
+    # ise = calc_spwe_ise(sample.shape[1], kde, true_pdf_64, 64)
+    # print('Bandwidth', kde.bw)
+    # print('KDE ISE', ise)
+
+
+    wde = WaveletDensityEstimator(wave, k=1, j0=j0_ini, j1=None)
+    wde.fit(sample)
+    ise = calc_spwe_ise(wde.dim, wde, true_pdf_64, 64)
+    elapsed_time = (datetime.now() - t0).total_seconds()
+    print('Running', th_str, 'algorithm')
+    print('ISE at j0=4', ise, ' (', elapsed_time, ' secs)')
+
+    contour_plot_it(dist, sample, 'threshold-%s-%d-true.eps' % (dist_code, nn))
+    contour_plot_it(wde, sample, 'th_%s-%s-%d-wde-raw-j0=%d.eps' % (dist_code, th_str, nn, wde.j0))
+    points = grid_points(dist.dim, 64)
+    true_pdf_64 = dist.pdf(points)
+    wde = WaveletDensityEstimator(wave, k=1, j0=j0, j1=j1)
+    wde.fit(sample)
+    contour_plot_it(wde, sample, 'th_%s-%s-%d-wde-raw-j=%d,%d.eps' % (dist_code, th_str, nn, wde.j0, wde.j1))
+    threshold = threshold_calc(wde, true_pdf_64, th_fun, th_str, num_threshold_initial, num_grid)
+    wde.thresholding = th_fun(threshold)
+    wde.calc_pdf()
+    contour_plot_it(wde, sample, 'th_%s-%s-%d-wde-threshold-j=%d,%d,th=%f.eps' % (dist_code, th_str, nn, wde.j0, wde.j1, threshold))
+    elapsed_time = (datetime.now() - t0).total_seconds()
+    print('Threshold', threshold, ', secs', elapsed_time)
+
+    #betas = np.array(flatten([wde.get_betas(j) for j in wde.coeffs.keys()]))
+    # standard soft_threshold
+    #print 'all coeffs #',betas.shape
+    return
+
 def generate_all():
     #plt.ioff()
     #generate_true_plots()
     #generate_comparison_plots()
-    generate_tables_mise()
-    #generate_threshold_contours()
+    #generate_tables_mise()
+    #generate_plots_threshold('mix8', 'db10')
     #generate_other_statistics()
     print('Done')
 
