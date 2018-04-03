@@ -49,6 +49,30 @@ def soft_threshold(threshold):
                 return coeff - lvl_t
     return f
 
+
+SMAX_FACTOR = 4.0
+
+def softmax(alpha, v):
+    #return max(v, 0)
+    if alpha * v >= 10.0:
+        # avoids overflow
+        return max(0, v)
+    if alpha * v < -SMAX_FACTOR:
+        return 0.0
+    return math.log(1 + math.exp(alpha * v))/alpha
+
+
+def ultrasoft_threshold(threshold):
+    def f(n, j, j0, dn, coeff):
+        if threshold <= 0:
+            return coeff
+        lvl_factor = math.sqrt(j - j0 + 1) / math.sqrt(n)
+        lvl_t = threshold * lvl_factor
+        sgn = 1 if coeff > 0 else -1
+        return sgn * softmax(SMAX_FACTOR/threshold, abs(coeff) - lvl_t)
+    return f
+
+
 def hard_threshold(threshold):
     def f(n, j, j0, dn, coeff):
         lvl_factor = math.sqrt(j - j0 + 1) / math.sqrt(n)
