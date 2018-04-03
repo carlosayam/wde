@@ -28,7 +28,8 @@ class WaveletDensityEstimatorByLikelihood(object):
         self.minx = np.amin(xs, axis=0)
         self.maxx = np.amax(xs, axis=0)
         self.n = xs.shape[0]
-        self.allocate_vars(xs)
+        self.xs = xs
+        self.allocate_vars()
         self.calc_pdf()
         self.calc_grad_nll()
         self.maximise_likelihood()
@@ -60,19 +61,18 @@ class WaveletDensityEstimatorByLikelihood(object):
             resp[tuple(qx)] = f
         return resp
 
-    def allocate_vars(self, xs):
+    def allocate_vars(self):
         self.coeffs = {}
         self.nums = {}
         qxs = list(all_qx(self.dim))
         self.var_ix = 0
-        self.allocate_vars_j(self.j0, qxs[0:1], xs)
+        self.allocate_vars_j(self.j0, qxs[0:1], 'alpha')
         j0_level_ix = self.var_ix
         for j in range(self.j0, self.j1 + 1):
-            self.allocate_vars_j(j, qxs[1:], xs)
+            self.allocate_vars_j(j, qxs[1:], 'beta')
         self.vars = np.zeros(self.var_ix + 1, dtype=np.float64)
-        self.xs = xs
 
-    def allocate_vars_j(self, j, qxs, xs):
+    def allocate_vars_j(self, j, qxs, what):
         """
         Allocate coefficients for level J into a position in vars array by simply going through everyone of them
         and setting the current index for that coefficient in the vars array
@@ -90,6 +90,7 @@ class WaveletDensityEstimatorByLikelihood(object):
                 # store position of coefficient for var_ix
                 self.coeffs[j][qx][zs] = self.var_ix
                 self.var_ix += 1
+                ## print('v%d = \\%s[%d, qx=%s, zs=%s]' % (self.var_ix-1, what, j, str(qx), str(zs)))
 
     def calc_pdf(self):
         def pdffun_j(vars, coords, xs_sum, j, qxs, threshold):
@@ -114,7 +115,7 @@ class WaveletDensityEstimatorByLikelihood(object):
         self.pre_pdf = pre_pdffun
         def pdffun(coords):
             vals = pre_pdffun(self.vars, coords)
-            return (vals * vals).sum()
+            return vals * vals
         pdffun.__dict__['dim'] = self.dim
         self.pdf = pdffun
 
@@ -130,9 +131,9 @@ class WaveletDensityEstimatorByLikelihood(object):
                     wavef = self.dual_wave_funs[qx]
                     for zs in self.coeffs[j][qx]:
                         ix = self.coeffs[j][qx][zs]
-                        jac[ix] = (new_vars[ix] * wavef(jpow2, zs, coords)).sum()
+                        jac[ix] = wavef(jpow2, zs, coords).sum()
             g = self.pre_pdf(new_vars, coords).sum()
-            return 2 * jac / g
+            return - jac / g
         fun.__dict__['dim'] = self.dim
         self.grad_nll = fun
 
@@ -144,7 +145,7 @@ class WaveletDensityEstimatorByLikelihood(object):
 
         def fun_nll(new_vars, _lambda):
             vals = self.pre_pdf(new_vars, self.xs)
-            return -np.log(vals * vals).mean() + _lambda * fun_h(new_vars)
+            return -np.log(vals * vals).sum() + _lambda * fun_h(new_vars)
 
         def fun_h(new_vars):
             return (new_vars * new_vars).sum() - 1
@@ -159,33 +160,52 @@ class WaveletDensityEstimatorByLikelihood(object):
         self._lambda = 1
         # random initial vector, subject to constraint
         self.vars = np.random.randn(len(self.vars))
+        print(self.vars.shape)
         self.vars = self.vars / ((self.vars * self.vars).sum() ** 0.5)
-        epsilon = 1
-        max_iters = 25
-        prev_f = fun_nll(self.vars, self._lambda)
-        while epsilon > 0.0001 and max_iters > 0:
-            print(epsilon, prev_f)
+        max_iters = 1
+        nvars = len(self.vars)
+        print('N VARS', nvars)
+        prev_f = None
+        must_run = True
+        while must_run and max_iters < 50:
 
             # see Peter & Rangarajan (2008), eq (27)
-            h = fun_h(self.vars)
-            big_f = 0.25 * fun_grad_h(self.vars)
+
             a_vector = fun_grad_h(self.vars)
+            a_vector = a_vector.reshape((nvars, 1)) # column vector
             grad_nll = fun_grad_nll(self.vars)
+            grad_nll = grad_nll.reshape((nvars, 1)) # column vector
             l_vector = grad_nll + self._lambda * a_vector
-            c_inv = 4 / (a_vector * a_vector).sum() # C = A^T B^{-1) A
-            # new \lambda
-            lambda_t1 = c_inv * (h - (big_f * grad_nll).sum())
-            delta_vars = - 0.25 * (grad_nll - a_vector * c_inv * fun_h(self.vars))
-            next_f = fun_nll(self.vars, self._lambda)
-            self._lambda = lambda_t1
-            self.vars += delta_vars
-            if prev_f is None:
-                epsilon = 1
-                prev_f = next_f
+
+            h = fun_h(self.vars)
+
+            # see 2002, Lu, Shiou - Inverses of 2 × 2 Block Matrices, eq (2.2)
+            # or http://www.cs.nthu.edu.tw/~jang/book/addenda/matinv/matinv/ (Special case 1)
+            k = -0.25 * np.matmul(a_vector.T, a_vector) # Schur complement of H, dim 1x1
+            inv_11 = 0.25 * np.eye(a_vector.shape[0]) + 0.0625 / k * np.matmul(a_vector, a_vector.T)
+            inv_12 = -0.25 / k * a_vector
+            inv_21 = -0.25 / k * a_vector.T
+            inv_22 = 1.0 / k
+
+            self_vars = self.vars.reshape((nvars, 1)) - np.matmul(inv_11, l_vector) - inv_12 * h
+            self_lambda = self._lambda - np.matmul(inv_21, l_vector) - inv_22 * h
+
+            next_f = fun_nll(self_vars, self_lambda)
+
+            print('(%d)' % max_iters, self._lambda, '->', next_f, h)
+
+            if max_iters <= 2:
+                self.vars = self_vars.reshape(-1)
+                self._lambda = self_lambda
             else:
-                epsilon = abs(prev_f - next_f)
-                prev_f = next_f
-            max_iters -= 1
-        if epsilon > 0.0001:
-            raise ValueError('Minimisation failed')
-        print('Minimised!')
+                must_run = h > 0.0001
+                if must_run:
+                    self.vars = self_vars.reshape(-1)
+                    self._lambda = self_lambda
+            prev_f = next_f
+            max_iters += 1
+
+        if h > 0.0001:
+            print('Minimisation failed', h)
+        else:
+            print('Minimised!')
