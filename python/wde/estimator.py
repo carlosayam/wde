@@ -87,10 +87,10 @@ class WaveletDensityEstimator(object):
         return [coeff for ix, qx in list(all_qx(self.dim))[1:] for coeff in self.coeffs[j][qx].values()]
 
     def get_nums(self):
-        return [coeff
+        return [num
                 for j in self.nums
                     for ix, qx in list(all_qx(self.dim))[1:]
-                        for coeff in self.nums[j][qx].values()]
+                        for num in self.nums[j][qx].values()]
 
     def calc_pdf(self):
         def pdffun_j(coords, xs_sum, j, qxs, threshold):
